@@ -1,17 +1,17 @@
-# -------------------- Lexigram Definition --------------------
-# Definition of custom lexigrans 
-#	-File format:
-# 		<keyword> <keyID> <'Comment'>
-# 	Where:
-#	 <keyword>	 is a one string word, without spaces
-#	 <keyID>	 is a integer defining the lexicon unique ID
-#	 <'Comment'> is a 256 characters string, counting with the single brackets
-#	 And '#' defines a comment line. Those should be ignored by the parser
+@ -------------------- Lexigram Definition --------------------
+@ Definition of custom lexigrans 
+@	-File format:
+@ 		<keyword> <keyID> <'Comment'>
+@ 	Where:
+@	 <keyword>	 is a one string word, without spaces
+@	 <keyID>	 is a integer defining the lexicon unique ID
+@	 <'Comment'> is a 256 characters string, counting with the single brackets
+@	 And '@' defines a comment line. Those should be ignored by the parser
 main 0 'Starter function, must check for () to verify as function'
-# - Conditional Operators [1..9] ------------------------------
+@ - Conditional Operators [1..9] ------------------------------
 if 1 'Conditional'
 else 2 'Default conditional'
-# - Logic & Arithmetic Operators [10..99] ---------------------
+@ - Logic & Arithmetic Operators [10..99] ---------------------
 = 10 'Atribution'
 + 11 'Sum'
 - 12 'Subtraction'
@@ -28,7 +28,7 @@ else 2 'Default conditional'
 & 23 'Logic AND'
 ++ 24 'Increment Operator'
 -- 25 'Decrement Operator'
-# - Special Operators [100..199] ------------------------------
+@ - Special Operators [100..199] ------------------------------
 { 100 'Open Scope'
 } 101 'Close Scope'
 [ 102 'Index Open'
@@ -36,24 +36,24 @@ else 2 'Default conditional'
 ( 104 'Priority Open'
 ) 105 'Priority Close'
 ; 106 'Line End'
-# 199 'Include Call'
-# - Branch & Loop operators [200..299] ------------------------
+@ 199 'Include Call'
+@ - Branch & Loop operators [200..299] ------------------------
 for 200 'For Loop'
 while 201 'While Loop and Do-While end'
 do 202 'Do-While Loop starter'
 switch 203 'Switch Labels Branch'
 continue 204 'Skip-Continue Loop'
 break 205 'Skip-Exit Loop'
-# - Reserved Words [400..999] ---------------------------------
+@ - Reserved Words [400..999] ---------------------------------
 char 400 'Atomic character'
 string 401 'String class'
 int 402 'Atomic integer'
 double 403 'Atomic float'
 const 404 'Constant'
 return 500 'Return operator'
-# - System Reserved [1000..9999] ------------------------------
+@ - System Reserved [1000..9999] ------------------------------
 __RES_VAR_SLOT__ 1000 'Start of the available variable slots'
 __RES_CONS_NUM__ 9999 'Plain Number'
-# msbrito@uesc.br (Colocar 'CET058-' no assunto)
+@ msbrito@uesc.br (Colocar 'CET058-' no assunto)
 
 
