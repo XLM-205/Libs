@@ -1,5 +1,5 @@
-/*------- ?? -------
-*	--
+/*------- Custom Lexicon Library -------
+*	-- Create lexicon table from a lexigram dictionary (.lxd)
 *
 *
 *	Moon Wiz Studios (c) - 30/08/2018
@@ -10,7 +10,7 @@
 *	YOU MAY use it in any project of your own or edit this file, given the proper credits to Moon Wiz Studios
 *   This notice MAY NOT be removed nor altered from any source distribution
 *
-*	Version -.-.-
+*	Version 0.8.0
 */
 
 #ifndef _H_MWLEX_
@@ -78,47 +78,92 @@ private:
 	int m_aditionalSymbols;
 	bool m_buildSucess;
 
-public:
-	LexDictionary(const char *lexDefinition) : m_buildSucess(false), m_aditionalSymbols(0)
+	//getSymbol() func to save on 'if'
+	LexSymbol* (LexDictionary::*getSymbFunc)(const char*);
+
+	//Reset the dictionary to the initial state
+	void resetDict(void)
 	{
-		m_lexDefPath = new BaseString(lexDefinition);
+		deleteAlloc();
+		m_extraSymbolsStart = m_aditionalSymbols = m_buildSucess = 0;
+		getSymbFunc = &LexDictionary::p_getSymbolFail;
+	}
+
+	//Free memory alocated
+	void deleteAlloc(void)
+	{
+		Utils::SafeDelete(&m_lexDefPath);
+		Utils::SafeDelete(&m_lexDictionary);
+	}
+
+	LexSymbol* p_getSymbolSucc(const char *s)
+	{
+		return m_lexDictionary->Get(s);
+	}
+	LexSymbol* p_getSymbolFail(const char *s)
+	{
+		return nullptr;
+	}
+
+public:
+	LexDictionary(const char *lexDefinitionFile) : m_buildSucess(false), m_aditionalSymbols(0), getSymbFunc(nullptr)
+	{
+		Build(lexDefinitionFile);
+	}
+	~LexDictionary()
+	{
+		deleteAlloc();
+	}
+
+	bool Build(const char *lexDefinitionFile)
+	{
+		m_lexDefPath = new BaseString(lexDefinitionFile);
 		m_lexDictionary = new Trie<LexSymbol>();
-		if (m_lexDefPath->Length())
+		if (!m_lexDefPath->Empty())	//Only accepts if the file path have any characters in it
 		{
 			FileStates reader(m_lexDefPath->getString(), "r");
 			if (reader.fileSuccess())
 			{
+				char *tempTok = reader.readLine(2, true);
+				char comToken = '0';
+				if (tempTok)
+				{
+					comToken = tempTok[0];
+					delete[] tempTok;
+				}
 				m_buildSucess = true;
 				while (!reader.endOfFile())
 				{
 					char *lex = reader.readWord();
 					int ID = reader.readInteger();
 					char *com = reader.readLine();
-					if (lex && com && lex[0] != '!')	//Only insert a new Lexicon if everything is valid!
+					if (lex && com)	//Only insert a new Lexicon if everything is valid...
 					{
-						char *temp = CharOperations::substringBetween(com, CST_KEY_SINGLE_QUOTE, CST_KEY_SINGLE_QUOTE);
-						m_lexDictionary->Insert(lex, new LexSymbol(ID, lex, temp));
+						if (lex[0] != comToken)	//...AND ONLY if this line is NOT a internal comment line
+						{
+							char *temp = CharOperations::substringBetween(com, CST_KEY_SINGLE_QUOTE, CST_KEY_SINGLE_QUOTE);
+							m_lexDictionary->Insert(lex, new LexSymbol(ID, lex, temp));
+							delete[] temp;
+						}
 						delete[] lex;
 						delete[] com;
-						delete[] temp;
+					}
+					else if(!reader.endOfFile())	//File is out of format! Abort everything
+					{
+						Utils::SafeDelete(&lex);
+						Utils::SafeDelete(&com);
+						resetDict();
+						return false;
 					}
 				}
+				getSymbFunc = &LexDictionary::p_getSymbolSucc;
 				m_extraSymbolsStart = getSymbol("__RES_VAR_SLOT__")->ID();
+				//Everything went okay!
+				return true;
 			}
 		}
-	}
-	~LexDictionary()
-	{
-		if (m_lexDefPath)
-		{
-			delete m_lexDefPath;
-			m_lexDefPath = nullptr;
-		}
-		if (m_lexDictionary)
-		{
-			delete m_lexDictionary;
-			m_lexDictionary = nullptr;
-		}
+		resetDict();
+		return false;
 	}
 
 	LexSymbol* Add(const char *symbol)
@@ -136,11 +181,7 @@ public:
 
 	LexSymbol* getSymbol(const char *symbol)
 	{
-		if (m_buildSucess)
-		{
-			return m_lexDictionary->Get(symbol);
-		}
-		return nullptr;
+		return (this->*getSymbFunc)(symbol);
 	}
 
 	List<LexSymbol>* listAll(void)

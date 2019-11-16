@@ -11,7 +11,7 @@
 *	YOU MAY use it in any project of your own or edit this file, given the proper credits to Moon Wiz Studios
 *   This notice MAY NOT be removed nor altered from any source distribution
 *
-*	Version 1.8.9
+*	Version 1.8.92
 */
 
 #ifndef _H_CSTTYPE_
@@ -1346,6 +1346,24 @@ public:
 				m_text[i] = cNew;
 			}
 		}
+	}
+	int Count(char c)
+	{
+		int inc = 0;
+		for (int i = 0; m_text[i]; i++)
+		{
+			if (m_text[i] == c)
+			{
+				inc++;
+			}
+		}
+		return inc;
+	}
+
+	bool Empty(void)
+	{
+		//If the count of white spaces + 1 (for the '\0') is the length, then we have nothing here
+		return Count(' ') + 1 == m_length;
 	}
 
 	int indexOfFirst(char C)

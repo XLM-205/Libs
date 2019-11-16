@@ -1,3 +1,4 @@
+@
 @ -------------------- Lexigram Definition --------------------
 @ Definition of custom lexigrans 
 @	-File format:
@@ -6,8 +7,8 @@
 @	 <keyword>	 is a one string word, without spaces
 @	 <keyID>	 is a integer defining the lexicon unique ID
 @	 <'Comment'> is a 256 characters string, counting with the single brackets
-@	 And '@' defines a comment line. Those should be ignored by the parser
-main 0 'Starter function, must check for () to verify as function'
+@	The first character of the file defines a comment line. Those should be ignored by the parser
+main 0 'Must check for () to verify as function'
 @ - Conditional Operators [1..9] ------------------------------
 if 1 'Conditional'
 else 2 'Default conditional'
@@ -36,7 +37,8 @@ else 2 'Default conditional'
 ( 104 'Priority Open'
 ) 105 'Priority Close'
 ; 106 'Line End'
-@ 199 'Include Call'
+// 198 'Comment Line'
+# 199 'Include Call'
 @ - Branch & Loop operators [200..299] ------------------------
 for 200 'For Loop'
 while 201 'While Loop and Do-While end'
@@ -48,7 +50,7 @@ break 205 'Skip-Exit Loop'
 char 400 'Atomic character'
 string 401 'String class'
 int 402 'Atomic integer'
-double 403 'Atomic float'
+double 403 'Atomic float'	
 const 404 'Constant'
 return 500 'Return operator'
 @ - System Reserved [1000..9999] ------------------------------
