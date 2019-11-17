@@ -10,7 +10,7 @@
 *	YOU MAY use it in any project of your own or edit this file, given the proper credits to Moon Wiz Studios
 *   This notice MAY NOT be removed nor altered from any source distribution
 *
-*	Version 0.8.0
+*	Version 0.8.1
 */
 
 #ifndef _H_MWLEX_
@@ -78,15 +78,11 @@ private:
 	int m_aditionalSymbols;
 	bool m_buildSucess;
 
-	//getSymbol() func to save on 'if'
-	LexSymbol* (LexDictionary::*getSymbFunc)(const char*);
-
 	//Reset the dictionary to the initial state
 	void resetDict(void)
 	{
 		deleteAlloc();
 		m_extraSymbolsStart = m_aditionalSymbols = m_buildSucess = 0;
-		getSymbFunc = &LexDictionary::p_getSymbolFail;
 	}
 
 	//Free memory alocated
@@ -96,23 +92,19 @@ private:
 		Utils::SafeDelete(&m_lexDictionary);
 	}
 
-	LexSymbol* p_getSymbolSucc(const char *s)
-	{
-		return m_lexDictionary->Get(s);
-	}
-	LexSymbol* p_getSymbolFail(const char *s)
-	{
-		return nullptr;
-	}
-
 public:
-	LexDictionary(const char *lexDefinitionFile) : m_buildSucess(false), m_aditionalSymbols(0), getSymbFunc(nullptr)
+	LexDictionary(const char *lexDefinitionFile) : m_buildSucess(false), m_aditionalSymbols(0)
 	{
 		Build(lexDefinitionFile);
 	}
 	~LexDictionary()
 	{
 		deleteAlloc();
+	}
+
+	void Clear(void)
+	{
+		resetDict();
 	}
 
 	bool Build(const char *lexDefinitionFile)
@@ -156,9 +148,7 @@ public:
 						return false;
 					}
 				}
-				getSymbFunc = &LexDictionary::p_getSymbolSucc;
 				m_extraSymbolsStart = getSymbol("__RES_VAR_SLOT__")->ID();
-				//Everything went okay!
 				return true;
 			}
 		}
@@ -181,7 +171,11 @@ public:
 
 	LexSymbol* getSymbol(const char *symbol)
 	{
-		return (this->*getSymbFunc)(symbol);
+		if (m_buildSucess)
+		{
+			return m_lexDictionary->Get(symbol);
+		}
+		return nullptr;
 	}
 
 	List<LexSymbol>* listAll(void)
