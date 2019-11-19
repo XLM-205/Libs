@@ -56,6 +56,3 @@ return 500 'Return operator'
 @ - System Reserved [1000..9999] ------------------------------
 __RES_VAR_SLOT__ 1000 'Start of the available variable slots'
 __RES_CONS_NUM__ 9999 'Plain Number'
-@ msbrito@uesc.br (Colocar 'CET058-' no assunto)
-
-

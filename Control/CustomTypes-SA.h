@@ -11,7 +11,7 @@
 *	YOU MAY use it in any project of your own or edit this file, given the proper credits to Moon Wiz Studios
 *   This notice MAY NOT be removed nor altered from any source distribution
 *
-*	Version 1.8.92
+*	Version 1.8.93
 */
 
 #ifndef _H_CSTTYPE_
@@ -20,48 +20,42 @@
 //Custom variables types and classes for easy use
 
 //Math and Constants
-#define CST_PI		3.141592653589793				//
-#define CST_2PI		6.283185307179586				//
-#define CST_PI_180	0.017453292516666				// PI / 180
-#define CST_180_PI	57.29577951308232				// 180 / PI
-#define CST_EULER	2.718281828459045				//
-#define CST_KB		1024							// Byte / CST_KB = KB
-#define CST_MB		1048576							// Byte / CST_MB = MB
-#define CST_GB		1073741824						// Byte / CST_GB = GB
-#define CST_TB		1099511627776					// Byte / CST_TB = TB
+#define CST_PI		3.141592653589793				//PI			 (15 decimal places)
+#define CST_2PI		6.283185307179586				//2 * PI		 (15 decimal places)
+#define CST_PI_180	0.017453292516666				//PI / 180		 (15 decimal places)
+#define CST_180_PI	57.29577951308232				//180 / PI		 (15 decimal places)
+#define CST_EULER	2.718281828459045				//Euler Constant (15 decimal places)
+#define CST_KB		1024							//Byte / CST_KB = KB
+#define CST_MB		1048576							//Byte / CST_MB = MB
+#define CST_GB		1073741824						//Byte / CST_GB = GB
+#define CST_TB		1099511627776					//Byte / CST_TB = TB
 //Keyboard Key codes
-#define CST_KEY_BACKSPACE		8					//
-#define CST_KEY_TAB				9					//
-#define CST_KEY_ENTER			13					//
-#define CST_KEY_ESC				27					//
-#define CST_KEY_SPACE			32					//
-#define CST_KEY_DOUBLE_QUOTE	34					//
-#define CST_KEY_SINGLE_QUOTE	39					//
-#define CST_KEY_DELETE			127					//
-//External Macros
-#define CST_TYPE_NONE			 0					//
-#define CST_TYPE_SUCCESS		 1					//
-#define CST_TYPE_WARNING		 2					//
-#define CST_TYPE_ERROR			 3					//
-#define CST_TYPE_EXCEPTION		 4					//
+#define CST_KEY_BACKSPACE		 8					//Keyboard ASCII code for ' Backspace '
+#define CST_KEY_TAB				 9					//Keyboard ASCII code for ' Tab '
+#define CST_KEY_ENTER			 13					//Keyboard ASCII code for ' Enter '
+#define CST_KEY_ESC				 27					//Keyboard ASCII code for ' Escape '
+#define CST_KEY_SPACE			 32					//Keyboard ASCII code for ' Space '
+#define CST_KEY_DOUBLE_QUOTE	 34					//Keyboard ASCII code for ' " '
+#define CST_KEY_SINGLE_QUOTE	 39					//Keyboard ASCII code for ' ' '
+#define CST_KEY_DELETE			 127				//Keyboard ASCII code for ' Delete '
 //Variables Limits
-#define CST_INT8_MAX			 127				//
-#define CST_INT8_MIN     		-128
-#define CST_UINT8_MAX			 255
-#define CST_INT16_MAX		    32767
-#define CST_INT16_MIN		   -32768
-#define CST_UINT16_MAX			65535
-#define CST_INT32_MAX		  2147483647
-#define CST_INT32_MIN		 -2147483648
-#define CST_UINT32_MAX		  4294967295	
-#define CST_INT64_MAX     9223372036854775807		
-#define CST_INT64_MIN	 -9223372036854775808
-#define CST_UINT64_MAX	 18446744073709551615
+#define CST_INT8_MAX			 127				//Upper Limit for a 1 Byte Signed Integer
+#define CST_UINT8_MAX			 255				//Upper Limit for a 1 Byte (UN) Signed Integer
+#define CST_INT16_MAX		    32767				//Upper Limit for a 2 Bytes Signed Integer
+#define CST_UINT16_MAX			65535				//Upper Limit for a 2 Bytes (UN) Signed Integer
+#define CST_INT32_MAX		  2147483647			//Upper Limit for a 4 Bytes Signed Integer
+#define CST_UINT32_MAX		  4294967295			//Upper Limit for a 4 Bytes (UN) Signed Integer
+#define CST_INT64_MAX     9223372036854775807		//Upper Limit for a 8 Bytes Signed Integer
+#define CST_UINT64_MAX	 18446744073709551615		//Upper Limit for a 8 Bytes Signed Integer
+#define CST_INT8_MIN	   -CST_INT8_MAX  - 1		//Down Limit for a 1 Byte Signed Integer (Inverse of MAX - 1, to prevent warnings)
+#define CST_INT16_MIN	   -CST_INT16_MAX - 1		//Down Limit for a 2 Bytes Signed Integer (Inverse of MAX - 1, to prevent warnings)
+#define CST_INT32_MIN	   -CST_INT32_MAX - 1		//Down Limit for a 4 Bytes Signed Integer (Inverse of MAX - 1, to prevent warnings)
+#define CST_INT64_MIN	   -CST_INT64_MAX - 1		//Down Limit for a 8 Bytes Signed Integer (Inverse of MAX - 1, to prevent warnings)
 //Variables Digits Count
-#define CST_DIGITS_INT8			 4			//Digits with minus sign consideration
-#define CST_DIGITS_INT16		 6			//Digits with minus sign consideration
-#define CST_DIGITS_INT32		11			//Digits with minus sign consideration
-#define CST_DIGITS_INT64		20			//Digits with minus sign consideration
+#define CST_DIGITS_INT8			 4					//Digits with minus sign consideration
+#define CST_DIGITS_INT16		 6					//Digits with minus sign consideration
+#define CST_DIGITS_INT32		11					//Digits with minus sign consideration
+#define CST_DIGITS_INT64		20					//Digits with minus sign consideration
 
 //Unsigned Types --------------------------------------------------------------------------------------------------
 typedef unsigned char				uint8;		//Range > 0 to 255 (1 byte / BYTE)
@@ -90,18 +84,27 @@ typedef signed __int64				int64;		//Range > –9,223,372,036,854,775,808 to 9,223,
 
 //Namespaces and worker classes	//	------------------------------------------------------------------------------------------------------
 
-enum BitOperationsExtractByte
+enum StateType
 {
-	BITOPERATIONS_BYTE_EXTRACT_FIRST,
-	BITOPERATIONS_BYTE_EXTRACT_SECOND,
-	BITOPERATIONS_BYTE_EXTRACT_THIRD,
-	BITOPERATIONS_BYTE_EXTRACT_FORTH
+	EXCP = -3,	//Exception
+	ERR,		//Error
+	WARN,		//Warning
+	NONE,		//None State Defined (Default)
+	SUCCESS		//Success
 };
 
-enum BitOperationsEndian
+enum ExtractByte
 {
-	BITOPERATIONS_BIG_ENDIAN,	//Most significant bit (generaly the 'sign' bit) stays at the front
-	BITOPERATIONS_LITTLE_ENDIAN	//Most significant bit (generaly the 'sign' bit) stays at the back
+	FIRST,
+	SECOND,
+	THIRD,
+	FORTH
+};
+
+enum Endian
+{
+	BIG_ENDIAN,		//Most significant bit (generaly the 'sign' bit) stays at the front
+	LITTLE_ENDIAN	//Most significant bit (generaly the 'sign' bit) stays at the back
 };
 
 namespace Tables
@@ -158,68 +161,68 @@ namespace Tables
 
 namespace BitOperations
 {
-	inline uint8 ExtractFromUInt32(uint32 src, BitOperationsExtractByte Byte, BitOperationsEndian Endianess)
+	inline uint8 ExtractFromUInt32(uint32 src, ExtractByte Byte, Endian Endianess)
 	{
-		if (Endianess == BITOPERATIONS_LITTLE_ENDIAN)
+		if (Endianess == LITTLE_ENDIAN)
 		{
 			switch (Byte)
 			{
-			case BITOPERATIONS_BYTE_EXTRACT_FIRST:
+			case FIRST:
 				return ((src & 0xFF000000) >> 24);
-			case BITOPERATIONS_BYTE_EXTRACT_SECOND:
+			case SECOND:
 				return ((src & 0x00FF0000) >> 16);
-			case BITOPERATIONS_BYTE_EXTRACT_THIRD:
+			case THIRD:
 				return ((src & 0x0000FF00) >> 8);
-			case BITOPERATIONS_BYTE_EXTRACT_FORTH:
+			case FORTH:
 				return ((src & 0x000000FF) >> 0);
 			}
 		}
 		switch (Byte)
 		{
-		case BITOPERATIONS_BYTE_EXTRACT_FIRST:
+		case FIRST:
 			return ((src & 0xFF000000) >> 0);
-		case BITOPERATIONS_BYTE_EXTRACT_SECOND:
+		case SECOND:
 			return ((src & 0x00FF0000) >> 8);
-		case BITOPERATIONS_BYTE_EXTRACT_THIRD:
+		case THIRD:
 			return ((src & 0x0000FF00) >> 16);
-		case BITOPERATIONS_BYTE_EXTRACT_FORTH:
+		case FORTH:
 			return ((src & 0x000000FF) >> 24);
 		}
 		return 0;	//Invalid parameters
 	}
-	inline int8 ExtractFromInt32(int32 src, BitOperationsExtractByte Byte, BitOperationsEndian Endianess)
+	inline int8 ExtractFromInt32(int32 src, ExtractByte Byte, Endian Endianess)
 	{
-		if (Endianess == BITOPERATIONS_LITTLE_ENDIAN)
+		if (Endianess == LITTLE_ENDIAN)
 		{
 			switch (Byte)
 			{
-			case BITOPERATIONS_BYTE_EXTRACT_FIRST:
+			case FIRST:
 				return ((src & 0xFF000000) >> 24);
-			case BITOPERATIONS_BYTE_EXTRACT_SECOND:
+			case SECOND:
 				return ((src & 0x00FF0000) >> 16);
-			case BITOPERATIONS_BYTE_EXTRACT_THIRD:
+			case THIRD:
 				return ((src & 0x0000FF00) >> 8);
-			case BITOPERATIONS_BYTE_EXTRACT_FORTH:
+			case FORTH:
 				return ((src & 0x000000FF) >> 0);
 			}
 		}
 		switch (Byte)
 		{
-		case BITOPERATIONS_BYTE_EXTRACT_FIRST:
+		case FIRST:
 			return ((src & 0xFF000000) >> 0);
-		case BITOPERATIONS_BYTE_EXTRACT_SECOND:
+		case SECOND:
 			return ((src & 0x00FF0000) >> 8);
-		case BITOPERATIONS_BYTE_EXTRACT_THIRD:
+		case THIRD:
 			return ((src & 0x0000FF00) >> 16);
-		case BITOPERATIONS_BYTE_EXTRACT_FORTH:
+		case FORTH:
 			return ((src & 0x000000FF) >> 24);
 		}
 		return 0;
 	}
-	inline uint8* ExtractFromUInt32(uint32 src, BitOperationsEndian Endianess)
+	inline uint8* ExtractFromUInt32(uint32 src, Endian Endianess)
 	{
 		uint8 *Out = new uint8[4];
-		if (Endianess == BITOPERATIONS_LITTLE_ENDIAN)
+		if (Endianess == LITTLE_ENDIAN)
 		{
 			Out[0] = (src & 0xFF000000) >> 24;
 			Out[1] = (src & 0x00FF0000) >> 16;
@@ -233,10 +236,10 @@ namespace BitOperations
 		Out[0] = (src & 0x000000FF);		// >> 0
 		return Out;
 	}
-	inline 	int8* ExtractFromInt32(int32 src, BitOperationsEndian Endianess)
+	inline 	int8* ExtractFromInt32(int32 src, Endian Endianess)
 	{
 		int8 *Out = new int8[4];
-		if (Endianess == BITOPERATIONS_LITTLE_ENDIAN)
+		if (Endianess == LITTLE_ENDIAN)
 		{
 			Out[0] = (src & 0xFF000000) >> 24;
 			Out[1] = (src & 0x00FF0000) >> 16;
@@ -250,10 +253,10 @@ namespace BitOperations
 		Out[0] = (src & 0x000000FF);
 		return Out;
 	}
-	inline uint32 ComputeUInt32(uint8 *src, BitOperationsEndian Endianess)
+	inline uint32 ComputeUInt32(uint8 *src, Endian Endianess)
 	{	// !! (WIP) !! Verify if this is the correct order for BIG ENDIAN
 		uint32 Out = 0;
-		if (Endianess == BITOPERATIONS_BIG_ENDIAN)
+		if (Endianess == BIG_ENDIAN)
 		{
 			Out = (src[0] << 0) | (src[1] << 8) | (src[2] << 16) | (src[3] << 24);
 			return Out;
@@ -261,10 +264,10 @@ namespace BitOperations
 		Out = (src[3] << 0) | (src[2] << 8) | (src[1] << 16) | (src[0] << 24);
 		return Out;
 	}
-	inline int32 ComputeInt32(int8 *src, BitOperationsEndian Endianess)
+	inline int32 ComputeInt32(int8 *src, Endian Endianess)
 	{
 		int32 Out = 0;
-		if (Endianess == BITOPERATIONS_BIG_ENDIAN)
+		if (Endianess == BIG_ENDIAN)
 		{
 			Out = (src[0] << 0) | (src[1] << 8) | (src[2] << 16) | (src[3] << 24);
 			return Out;
@@ -389,12 +392,12 @@ namespace BitOperations
 
 #ifdef _INC_STDIO	//If <stdio.h> is included, allow print function
 	template <typename T>
-	void PrintBinary(T src, BitOperationsEndian Endianess)
+	void PrintBinary(T src, Endian Endianess)
 	{
 		uint16 Size = sizeof(T);
 		uint16 Bits = Size * 8;
 		uint16 Ops = (Size << 1) - 1;
-		if (Endianess == BITOPERATIONS_BIG_ENDIAN)
+		if (Endianess == BIG_ENDIAN)
 		{
 			printf("[BIG ENDIAN]Binary of 'src' = %d [%d] Bytes (%d bits):\n", src, Size, Bits);
 			printf("[");
@@ -469,7 +472,7 @@ namespace Utils
 	{
 		if (N)	//Testing against 0
 		{
-			return 1 + countDigits(N * 0.1);
+			return 1 + countDigits((int)(N * 0.1));
 		}
 		return 0;
 	}
@@ -488,7 +491,7 @@ namespace Utils
 	{
 		if (n)
 		{
-			return n % 10 + sumDigits(n * 0.1);
+			return n % 10 + sumDigits((int)(n * 0.1));
 		}
 		return 0;
 	}
@@ -496,7 +499,7 @@ namespace Utils
 	{
 		if (input > 9 && n > 1)
 		{
-			return getDigit(input * 0.1, n - 1);
+			return getDigit((int)(input * 0.1), n - 1);
 		}
 		return input % 10;
 	}
@@ -1121,7 +1124,7 @@ namespace CharOperations
 				Number = N / DigitRegion;
 				Out[i] = getCharEquivalent(Number);
 				N = N - (Number * DigitRegion);
-				DigitRegion *= 0.1;
+				DigitRegion = (int)(DigitRegion * 0.1);
 			}
 		}
 		return Out;
@@ -1131,10 +1134,10 @@ namespace CharOperations
 		char *Out = new char[CST_DIGITS_INT32 + 1]();
 		uint32 i = 0;
 		int DigitRegion = 1;
-		if (Digits == 0)							//No digits?
+		if (Digits == 0)						//No digits?
 		{
-			Digits = Utils::countDigits(N);	//Check if there are digits
-			if (Digits == 0)						//There AREN'T digits, abort
+			Digits = Utils::countDigits(N);		//Check if there are digits
+			if (Digits == 0)					//There AREN'T digits, abort
 			{
 				return nullptr;
 			}
@@ -1154,7 +1157,7 @@ namespace CharOperations
 			Number = N / DigitRegion;
 			Out[i] = getCharEquivalent(Number);
 			N = N - (Number * DigitRegion);
-			DigitRegion *= 0.1;
+			DigitRegion = (int)(DigitRegion * 0.1);
 		}
 		return Out;
 	}
@@ -1996,39 +1999,6 @@ public:
 	}
 };
 
-//Keeps track of a task progress. Basic version (pgtk)
-//Variables available: bool DisplayProgress / bool is_finished / char CurrentWorkWr[31] / uint16 StepsTODO / uint16 CurrentStep
-class ProgressTracker
-{
-public:
-	virtual int getProgressTrackerCurrentStep(void){ return pgtkCurrentStep; };			//Return the current step the code is working now
-	virtual int getProgressTrackerStepsTODO(void){ return pgtkStepsTODO; };				//Return the total of steps required to finish a work
-	virtual char* getProgressTrackerCurrentWorkName(void){ return pgtkCurrentWorkWr; };	//Return the current action name
-
-protected:
-	bool pgtkDisplayProgress = false;							//Display progress?
-	char pgtkCurrentWorkWr[31];									//Work name
-	uint16 pgtkStepsTODO = 0;									//Total steps to finish work
-	uint16 pgtkCurrentStep = 0;									//Current action (from 0 to last step)
-	char* pgtkGlobalWorkReader;
-
-	//Default Constructor
-	ProgressTracker(void)
-	{
-		pgtkCurrentWorkWr[0] = 'N';
-		pgtkCurrentWorkWr[1] = 'O';
-		pgtkCurrentWorkWr[2] = 'N';
-		pgtkCurrentWorkWr[3] = 'E';
-		pgtkCurrentWorkWr[4] = '\0';
-	}
-	//Sets a Current Work Name to match another instance (WIP)
-	//Needs to make the "CurrentWorkWr" points to another "CurrentWorkWr" instance based on it's pointer (Super Global)
-	//void setTwin(char (&TargetTwin)[31])
-	//{
-	//	CurrentWorkWr = TargetTwin;
-	//}
-};
-
 class TimedAction
 {
 protected:
@@ -2139,7 +2109,7 @@ private:
 	ret(*callback)(par);	//Callback function. Will be called once the 'canAct()' returns true
 
 public:
-	TimedActionCallback(uint64 start, uint64 interval, uint32 resolution, ret(*func)(par)) : TimedAction(start, interval, resolution), callback(func) { };
+	TimedActionCallback(uint64 start, uint32 interval, uint32 resolution, ret(*func)(par)) : TimedAction(start, interval, resolution), callback(func) { };
 
 	ret act(int timeCounter, par parameter)
 	{
@@ -2162,7 +2132,7 @@ private:
 	ret(*callback)(void);	//Callback function. Will be called once the 'canAct()' returns true
 
 public:
-	TimedActionVoidCallback(uint64 start, uint64 interval, uint32 resolution, ret(*func)(void)) : TimedAction(start, interval, resolution), callback(func) { };
+	TimedActionVoidCallback(uint64 start, uint32 interval, uint32 resolution, ret(*func)(void)) : TimedAction(start, interval, resolution), callback(func) { };
 
 	void act(int timeCounter)
 	{

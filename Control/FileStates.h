@@ -25,8 +25,7 @@
 enum FileStatus
 {
 	ERROR_NO_PATH = -2,	//No or blank path given
-	ERROR_NO_FILE,		//No file found with given path
-	SUCCESS = 1			//File successfully read
+	ERROR_NO_FILE,		//No file found with given 
 };
 
 class FileStates
@@ -47,25 +46,25 @@ protected:
 		if (Filename == NULL || Filename[0] == '\0')
 		{
 			m_state->setString("ERROR! NO PATH GIVEN");
-			m_stateIDType = CST_TYPE_ERROR;
+			m_stateIDType = StateType::ERR;
 			return FileStatus::ERROR_NO_PATH;
 		}
 		m_fileP = fopen(Filename, Mode);
 		if (m_fileP)
 		{
 			m_state->setString("FILE SUCCESSFULLY READ");
-			m_stateIDType = CST_TYPE_SUCCESS;
-			return FileStatus::SUCCESS;
+			m_stateIDType = StateType::SUCCESS;
+			return StateType::SUCCESS;
 		}
 		m_state->setString("ERROR! NO FILE FOUND");
-		m_stateIDType = CST_TYPE_ERROR;
+		m_stateIDType = StateType::ERR;
 		m_fileP = nullptr;
 		return FileStatus::ERROR_NO_FILE;
 	}
 	int setFileError(BaseString* Error, uint16 Code)
 	{
 		m_state->setString(Error->getString());
-		m_stateIDType = CST_TYPE_ERROR;
+		m_stateIDType = StateType::ERR;
 		m_stateID = Code;
 		return m_stateID;
 	}
@@ -193,7 +192,7 @@ public:
 	{
 		if (m_fileP)
 		{
-			uint64 fIndex = ftell(m_fileP);
+			long fIndex = ftell(m_fileP);
 			fseek(m_fileP, 0, SEEK_SET);
 			while (!endOfFile())
 			{
@@ -229,7 +228,7 @@ public:
 	}
 	bool fileSuccess(void)
 	{
-		return m_stateID == FileStatus::SUCCESS;
+		return m_stateID == StateType::SUCCESS;
 	}
 
 	//Read a Line assuming a base buffer of 256 bytes and ignoring LineFeed ('\n')
@@ -358,7 +357,7 @@ public:
 		++aux;*/
 		for (int i = 0; i < Extensions; i++)
 		{
-			uint8 ExtLen = strlen(ValidExtension[i]);
+			uint32 ExtLen = strlen(ValidExtension[i]);
 			if (CharOperations::isEqual((char*)&FilenameInput[aux], (char*)ValidExtension[i], ExtLen))
 			{
 				return i;	//Detected a valid extension. Return the index of it
