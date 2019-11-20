@@ -1725,7 +1725,7 @@ class Automata
 			//Don't delete anything here, as each automata linked should be deleted by itself
 		}
 
-		bool canTransit(const char key)
+		bool haveTransition(const char key)
 		{
 			return m_read == key;
 		}
@@ -1762,7 +1762,7 @@ class Automata
 		Node<AutomataTransition> *runner = m_paths.RetrieveFirst();
 		while(runner)
 		{
-			if (runner->getData()->canTransit(key))
+			if (runner->getData()->haveTransition(key))
 			{
 				return runner->getData()->m_next;
 			}
@@ -1817,17 +1817,19 @@ public:
 
 	Automata* Execute(const char *input)
 	{
-		Automata *runner = nullptr;
-		for (int i = 0; input[i]; i++)					//Suppose 'input' is valid...
+		Automata *runner = canTransit(input[0]);		//Transit the first time
+		for (int i = 1; input[i] && runner; i++)		//Suppose 'input' is valid...
 		{
-			runner = canTransit(input[i]);				//...get the next node we can transit trough at this step
-			if (runner == nullptr)						//If there isn't a valid node, 'input' is NOT valid
-			{
-				return nullptr;
-			}
+			
+			runner = runner->canTransit(input[i]);		//...get the next node we can transit trough at this step
 		}
 		//If we reached here, we run trough 'input', which means we always had a transtion to make...
-		return runner->EndNode() ? runner : nullptr;	//...and after that, if we reached an 'end' node, then 'input' is valid
+		if (runner == nullptr || !runner->EndNode())
+		{
+			return nullptr;
+		}
+		//...and after that, if we reached an 'end' node, then 'input' is valid
+		return runner;
 	}
 
 #ifdef _INC_STDIO
