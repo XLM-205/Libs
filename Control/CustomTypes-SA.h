@@ -6,7 +6,7 @@
 *	Moon Wiz Studios (c) - 16/08/2015
 *	by: Ramon Darwich de Menezes
 *
-*	
+*
 *	YOU MAY NOT use this file for commercial purposes without permission from this file creator OR Moon Wiz Studios
 *	YOU MAY use it in any project of your own or edit this file, given the proper credits to Moon Wiz Studios
 *   This notice MAY NOT be removed nor altered from any source distribution
@@ -146,13 +146,13 @@ namespace Tables
 			case 15:
 				return 1307674368000;
 			case 16:
-				return      20922789888000;
+				return 20922789888000;
 			case 17:
-				return     355687428096000;
+				return 355687428096000;
 			case 18:
-				return    6402373705728000;
+				return 6402373705728000;
 			case 19:
-				return  121645100408832000;
+				return 121645100408832000;
 			case 20:
 				return 2432902008176640000;
 		}
@@ -161,7 +161,7 @@ namespace Tables
 
 namespace BitOperations
 {
-	inline uint8 ExtractFromUInt32(uint32 src, ExtractByte Byte, Endian Endianess)
+	inline int ExtractFromUInt32(uint32 src, ExtractByte Byte, Endian Endianess)
 	{
 		if (Endianess == LITTLE_ENDIAN)
 		{
@@ -190,7 +190,7 @@ namespace BitOperations
 		}
 		return 0;	//Invalid parameters
 	}
-	inline int8 ExtractFromInt32(int32 src, ExtractByte Byte, Endian Endianess)
+	inline int ExtractFromInt32(int32 src, ExtractByte Byte, Endian Endianess)
 	{
 		if (Endianess == LITTLE_ENDIAN)
 		{
@@ -224,16 +224,16 @@ namespace BitOperations
 		uint8 *Out = new uint8[4];
 		if (Endianess == LITTLE_ENDIAN)
 		{
-			Out[0] = (src & 0xFF000000) >> 24;
-			Out[1] = (src & 0x00FF0000) >> 16;
-			Out[2] = (src & 0x0000FF00) >> 8;
-			Out[3] = (src & 0x000000FF);	// >> 0
+			Out[0] = (uint8)((src & 0xFF000000) >> 24);
+			Out[1] = (uint8)((src & 0x00FF0000) >> 16);
+			Out[2] = (uint8)((src & 0x0000FF00) >> 8);
+			Out[3] = (uint8)(src & 0x000000FF);	// >> 0
 			return Out;
 		}
-		Out[3] = (src & 0xFF000000) >> 24;
-		Out[2] = (src & 0x00FF0000) >> 16;
-		Out[1] = (src & 0x0000FF00) >> 8;
-		Out[0] = (src & 0x000000FF);		// >> 0
+		Out[3] = (uint8)((src & 0xFF000000) >> 24);
+		Out[2] = (uint8)((src & 0x00FF0000) >> 16);
+		Out[1] = (uint8)((src & 0x0000FF00) >> 8);
+		Out[0] = (uint8)(src & 0x000000FF);		// >> 0
 		return Out;
 	}
 	inline 	int8* ExtractFromInt32(int32 src, Endian Endianess)
@@ -241,16 +241,16 @@ namespace BitOperations
 		int8 *Out = new int8[4];
 		if (Endianess == LITTLE_ENDIAN)
 		{
-			Out[0] = (src & 0xFF000000) >> 24;
-			Out[1] = (src & 0x00FF0000) >> 16;
-			Out[2] = (src & 0x0000FF00) >> 8;
-			Out[3] = (src & 0x000000FF);
+			Out[0] = (int8)((src & 0xFF000000) >> 24);
+			Out[1] = (int8)((src & 0x00FF0000) >> 16);
+			Out[2] = (int8)((src & 0x0000FF00) >> 8);
+			Out[3] = (int8)(src & 0x000000FF);
 			return Out;
 		}
-		Out[3] = (src & 0xFF000000) >> 24;
-		Out[2] = (src & 0x00FF0000) >> 16;
-		Out[1] = (src & 0x0000FF00) >> 8;
-		Out[0] = (src & 0x000000FF);
+		Out[3] = (int8)((src & 0xFF000000) >> 24);
+		Out[2] = (int8)((src & 0x00FF0000) >> 16);
+		Out[1] = (int8)((src & 0x0000FF00) >> 8);
+		Out[0] = (int8)(src & 0x000000FF);
 		return Out;
 	}
 	inline uint32 ComputeUInt32(uint8 *src, Endian Endianess)
@@ -368,20 +368,20 @@ namespace BitOperations
 	}
 
 	template <typename T>
-	inline bool IsBitSet(T Ref, uint16 Bit)
+	inline bool IsBitSet(T Ref, int Bit)
 	{
 		return Ref & (1 << Bit);
 	}
-	inline bool IsBitSet(int64 Ref, uint16 Bit)
+	inline bool IsBitSet(int64 Ref, int Bit)
 	{
 		return Ref & (1LL << Bit);
 	}
-	inline bool IsBitSet(uint64 Ref, uint16 Bit)
+	inline bool IsBitSet(uint64 Ref, int Bit)
 	{
 		return Ref & (1LLU << Bit);
 	}
 	template <typename T>
-	inline bool IsBitSetSafe(T Ref, uint16 Bit)
+	inline bool IsBitSetSafe(T Ref, int Bit)
 	{
 		if (Bit < (sizeof(T) * 8))
 		{
@@ -447,6 +447,15 @@ namespace BitOperations
 
 namespace Utils
 {
+	inline int Floor(double N)
+	{
+		return (int)N;
+	}
+	inline int Celling(double N)
+	{
+		return (int)(N + 0.9999999);
+	}
+
 	inline bool isOdd(int N)
 	{
 		// N -> XX XX XX XY
@@ -604,12 +613,12 @@ namespace Utils
 	inline uint16 Abs(int16 &X)
 	{
 		const int mask = X >> ((sizeof(int16) * 8) - 1);
-		return (X + mask) ^ mask;
+		return (uint16)((X + mask) ^ mask);
 	}
 	inline uint8 Abs(int8 &X)
 	{
 		const int mask = X >> ((sizeof(int8) * 8) - 1);
-		return (X + mask) ^ mask;
+		return (uint8)((X + mask) ^ mask);
 	}
 	template <class T>
 	inline void SafeDelete(T **mem)
@@ -657,10 +666,9 @@ namespace Utils
 
 	bool endOfFile(FILE *file)
 	{
-		char c = fgetc(file);
-		if (c != EOF)
+		if (fgetc(file) != EOF)
 		{
-			fseek(file, -1, SEEK_CUR);
+			fseek(file, -1L, SEEK_CUR);
 			return false;
 		}
 		return true;
@@ -837,7 +845,7 @@ namespace CharOperations
 		}
 		return false;
 	}
-	inline bool isEqualSensitive(char *S1, char *S2, uint16 length)
+	inline bool isEqualSensitive(char *S1, char *S2, int length)
 	{
 		for (int i = 0; i < length; i++)
 		{
@@ -848,7 +856,7 @@ namespace CharOperations
 		}
 		return true;
 	}
-	inline bool isEqualRangeSensitive(char *S1, char *S2, uint16 from, uint16 to)
+	inline bool isEqualRangeSensitive(char *S1, char *S2, int from, int to)
 	{
 		for (int i = from; i < to; i++)
 		{
@@ -869,7 +877,7 @@ namespace CharOperations
 		}
 		return C1 == C2 ? true : false;
 	}
-	inline bool isEqual(char *S1, char *S2, uint16 length)
+	inline bool isEqual(char *S1, char *S2, int length)
 	{
 		for (int i = 0; i < length; i++)
 		{
@@ -880,7 +888,7 @@ namespace CharOperations
 		}
 		return true;
 	}
-	inline bool isEqualRange(char *S1, char *S2, uint16 from, uint16 to)
+	inline bool isEqualRange(char *S1, char *S2, int from, int to)
 	{
 		for (int i = from; i < to; i++)
 		{
@@ -1101,52 +1109,19 @@ namespace CharOperations
 		return str;
 	}
 
-	inline char* numberToString(int N)
+	inline char* numberToString(int N, int Digits)
 	{
+		int i = 0, DigitRegion = 1;
 		char *Out = new char[CST_DIGITS_INT32 + 1]();
-		int i = 0;
-		int Digits = Utils::countDigits(N);
-		int DigitRegion = 1;		//Should NOT be unsigned!!
-		if (Digits > 0)
+		if (Digits == 0)	//No digits?
 		{
-			for (int j = 0; j < Digits - 1; j++)
-			{
-				DigitRegion *= 10;
-			}
-			if (N < 0)
-			{
-				i++;
-				Digits++;
-				Out[0] = '-';
-			}
-			for (int Number; i < Digits; i++)
-			{
-				Number = N / DigitRegion;
-				Out[i] = getCharEquivalent(Number);
-				N = N - (Number * DigitRegion);
-				DigitRegion = (int)(DigitRegion * 0.1);
-			}
-		}
-		return Out;
-	}
-	inline char* numberToString(int N, uint8 Digits)
-	{
-		char *Out = new char[CST_DIGITS_INT32 + 1]();
-		uint32 i = 0;
-		int DigitRegion = 1;
-		if (Digits == 0)						//No digits?
-		{
-			Digits = Utils::countDigits(N);		//Check if there are digits
-			if (Digits == 0)					//There AREN'T digits, abort
-			{
-				return nullptr;
-			}
+			return nullptr;
 		}
 		for (int j = 0; j < Digits - 1; j++)
 		{
 			DigitRegion *= 10;
 		}
-		if (N < 0)
+		if (N < 0)			//If negative, insert the minus sign
 		{
 			i++;
 			Digits++;
@@ -1160,6 +1135,10 @@ namespace CharOperations
 			DigitRegion = (int)(DigitRegion * 0.1);
 		}
 		return Out;
+	}
+	inline char* numberToString(int N)
+	{
+		return numberToString(N, Utils::countDigits(N));
 	}
 
 	inline char* substringBetween(const char *str, char start, char end)
@@ -1193,7 +1172,7 @@ namespace CharOperations
 namespace MemoryOperations
 {
 	template <typename T>
-	inline bool memIsAnySet(void* Tgt, T Val, uint32 Size)
+	inline bool memIsAnySet(void* Tgt, T Val, int Size)	//Returns true if ANY memory space matches 'Val'
 	{
 		T* Tester = (T*)Tgt;
 		for (int i = 0; i < Size; i++)
@@ -1206,7 +1185,12 @@ namespace MemoryOperations
 		return false;
 	}
 	template <typename T>
-	inline bool memIsAllSet(void* Tgt, T Val, uint32 Size)
+	inline bool memIsSet(void* Tgt, T Val, int index)	//Returns true if the place at 'index' matches 'Val'
+	{
+		return ((T*)Tgt)[index] == Val;
+	}
+	template <typename T>
+	inline bool memIsAllSet(void* Tgt, T Val, int Size)	//Returns true if ALL memory space matches 'Val', obeying 'Size'
 	{
 		T* Tester = (T*)Tgt;
 		for (int i = 0; i < Size; i++)
@@ -1225,20 +1209,18 @@ namespace MemoryOperations
 class BaseString
 {
 protected:
-	char *m_text;
 	uint32 m_length;
 	uint32 m_size;
+	char *m_text;
 
 public:
-	BaseString(const char *str) : m_length(0)
+	BaseString(const char *str) : m_length(0), m_size(0)
 	{
-		int sz = 0;
-		while(str[sz])
+		while(str[m_size])
 		{
-			sz++;
+			m_size++;
 		}
-		m_size = ++sz;
-		m_text = new char[sz];
+		m_text = new char[++m_size];
 		setString(str);
 	}
 	BaseString(uint32 size) : m_size(!size ? 1 : size), m_length(0)
@@ -1350,9 +1332,9 @@ public:
 			}
 		}
 	}
-	int Count(char c)
+	uint32 Count(char c)
 	{
-		int inc = 0;
+		uint32 inc = 0;
 		for (int i = 0; m_text[i]; i++)
 		{
 			if (m_text[i] == c)
@@ -1840,7 +1822,7 @@ public:
 	{
 		Color.Col = Palette.getColorsAsUInt32();
 	}
-	bool compare(RGBColorPalette &Palette)
+	virtual bool compare(RGBColorPalette &Palette)
 	{
 		return Color.Col == Palette.getColorsAsUInt32();
 	}
@@ -1950,7 +1932,7 @@ public:
 	{
 		return (Color.Comps[0] == Palette.getRed() && Color.Comps[1] == Palette.getGreen() && Color.Comps[2] == Palette.getBlue());
 	}
-	bool compare(uint32 Colors)
+	bool compare(const uint32 Colors)
 	{
 		return Color.Col == Colors;
 	}
@@ -1995,7 +1977,7 @@ public:
 	}
 	static float weight(const RGBAColorPalette &Palette)
 	{
-		return (float) (Palette.getRed() + Palette.getGreen() + Palette.getBlue() + Palette.getAlpha()) / 1020;
+		return (float)(Palette.getRed() + Palette.getGreen() + Palette.getBlue() + Palette.getAlpha()) / 1020;
 	}
 };
 
@@ -2059,7 +2041,7 @@ public:
 				nextCycle += (inter - actInterval);
 			}
 			else						//If not, then decrease it by the inter.
-			{ 
+			{
 				nextCycle -= inter;
 			}
 			actInterval = inter;

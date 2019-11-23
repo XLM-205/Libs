@@ -24,8 +24,10 @@
 
 enum FileStatus
 {
-	ERROR_NO_PATH = -2,	//No or blank path given
-	ERROR_NO_FILE,		//No file found with given 
+	FS_ERROR_NO_PATH = -2,	//No or blank path given
+	FS_ERROR_NO_FILE,		//No file found with given
+	FS_NONE,				//
+	FS_SUCCESS				//Sucessfully read file
 };
 
 class FileStates
@@ -35,38 +37,36 @@ protected:
 	BaseString *m_name = new BaseString(64);		//File name, WITH format
 	BaseString *m_format = new BaseString(8);		//Format, WITHOUT file name
 	BaseString *m_nameFull = new BaseString(256);	//Full file path
+	FileStatus m_stateCode = FileStatus::FS_NONE;		//[-2] - No Path, [-1] - No File, [0] - No State Set (Default), [1] - Sucess
 	uint32 m_Lines = 0;			//The total number of lines
-	int16 m_stateID = 0;		//Defaults to 0, or, no state read. It's value depends, but generaly, 1 means that the m_fileP was loaded successfuly
-	uint16 m_stateIDType = 0;	//Defaults to 0, or, none type specified. Range: 0~4 for [None], [Sucess], [Warning], [Error], [Exception]
 	FILE *m_fileP = nullptr;	//The file pointer								
-	bool m_eof = false;			//Becomes true if the last read reached the end of file
+	//bool m_eof = false;			//Becomes true if the last read reached the end of file
 
-	int fileCheck(const char *Filename, const char* Mode)
+	FileStatus fileCheck(const char *Filename, const char* Mode)
 	{
 		if (Filename == NULL || Filename[0] == '\0')
 		{
 			m_state->setString("ERROR! NO PATH GIVEN");
-			m_stateIDType = StateType::ERR;
-			return FileStatus::ERROR_NO_PATH;
+			m_stateCode = FileStatus::FS_ERROR_NO_PATH;
+			return m_stateCode;
 		}
 		m_fileP = fopen(Filename, Mode);
 		if (m_fileP)
 		{
 			m_state->setString("FILE SUCCESSFULLY READ");
-			m_stateIDType = StateType::SUCCESS;
-			return StateType::SUCCESS;
+			m_stateCode = FileStatus::FS_SUCCESS;
+			return m_stateCode;
 		}
 		m_state->setString("ERROR! NO FILE FOUND");
-		m_stateIDType = StateType::ERR;
+		m_stateCode = FileStatus::FS_ERROR_NO_FILE;
 		m_fileP = nullptr;
-		return FileStatus::ERROR_NO_FILE;
+		return m_stateCode;
 	}
-	int setFileError(BaseString* Error, uint16 Code)
+	FileStatus setFileError(BaseString* Error, FileStatus Code)
 	{
 		m_state->setString(Error->getString());
-		m_stateIDType = StateType::ERR;
-		m_stateID = Code;
-		return m_stateID;
+		m_stateCode = Code;
+		return m_stateCode;
 	}
 	void grabInfo(void)
 	{
@@ -106,10 +106,9 @@ public:
 		}
 	}
 
-	inline int getFileStateType(void){ return m_stateIDType; };			//Return the state type
-	inline int getFileStateCurrent(void){ return m_stateID; };			//Return the m_fileP state
+	inline int getFileState(void){ return m_stateCode; };			//Return the m_fileP state code
 	inline BaseString* getFileStateWr(void){ return m_state; };		//Return the m_fileP state, written
-	inline BaseString* getFileStateName(void) { return m_name; };		//Return the m_fileP name
+	inline BaseString* getFileStateName(void) { return m_name; };	//Return the m_fileP name
 	inline FileStates& getFileStateDataPointer(void) { return *this; };
 
 	inline FILE* swapFile(const char* Filename, const char* ReadMode)
@@ -127,7 +126,7 @@ public:
 			fclose(m_fileP);
 			m_fileP = nullptr;
 			m_Lines = 0;
-			m_eof = false;
+			//m_eof = false;
 		}
 	}
 	FILE* openFile(const char* Filename, const char* ReadMode)		//Tries to open a file. If successful, keep the file open and return the pointer to it
@@ -137,13 +136,13 @@ public:
 			closeFile();
 		}
 		m_nameFull->setString(Filename);
-		m_stateID = fileCheck(m_nameFull->getString(), ReadMode);
-		if (m_stateID == FileStatus::ERROR_NO_FILE)	//File not found (maybe path is broken?)
+		m_stateCode = fileCheck(m_nameFull->getString(), ReadMode);
+		if (m_stateCode == FileStatus::FS_ERROR_NO_FILE)	//File not found (maybe path is broken?)
 		{
 			m_nameFull->Replace('\\', '/');		//Try to fix it and check again
-			m_stateID = fileCheck(m_nameFull->getString(), ReadMode);
+			m_stateCode = fileCheck(m_nameFull->getString(), ReadMode);
 		}
-		if (m_stateID < 0)							//Failed again. Return null
+		if (m_stateCode != FileStatus::FS_SUCCESS)	//Failed again. Return null
 		{
 			m_fileP = nullptr;
 			m_nameFull->Clear();
@@ -152,26 +151,6 @@ public:
 		}
 		grabInfo();	//Everything went well! Grab all the remaining info
 		return m_fileP;
-		//m_stateID = fileCheck(Filename, ReadMode);
-		//if (m_stateID != MWFS_ERROR_NO_PATH)					//Input path is not valid or non existent
-		//{
-		//	char FilePath[128];
-		//	sprintf(FilePath, Filename);
-		//	if (m_stateID == MWFS_ERROR_NO_FILE)				//Try to fix the path in case of "/" or single "\" in the input string
-		//	{
-		//		Filename = filePathFixer(FilePath);
-		//		m_stateID = fileCheck(FilePath, ReadMode);		//Checks again to see if the path was fixed
-		//		if (m_stateID == MWFS_ERROR_NO_FILE)			//Object failed the fix -> Impossible to read
-		//		{
-		//			m_name->setString("UNKW");
-		//		}
-		//	}
-		//	else if (m_stateID == MWFS_SUCCESS)
-		//	{
-		//		return m_fileP;
-		//	}
-		//}
-		//return nullptr;
 	}
 
 	uint32 Lines(void)
@@ -185,7 +164,7 @@ public:
 		if (m_fileP)
 		{
 			rewind(m_fileP);
-			m_eof = false;
+			//m_eof = false;
 		}
 	}
 	uint32 countLines(void)
@@ -213,22 +192,19 @@ public:
 	}
 	bool endOfFile(void)
 	{
-		/*if (m_fileP)
+		if (m_fileP)
 		{
-			char c = fgetc(m_fileP);
-			if (c != EOF)
+			if (fgetc(m_fileP) != EOF)
 			{
-				int code = fseek(m_fileP, -1L, SEEK_CUR);
-				c = fgetc(m_fileP);
+				fseek(m_fileP, -1L, SEEK_CUR);
 				return false;
 			}
 		}
-		return true;*/
-		return m_eof;
+		return true;
 	}
 	bool fileSuccess(void)
 	{
-		return m_stateID == StateType::SUCCESS;
+		return m_stateCode == FileStatus::FS_SUCCESS;
 	}
 
 	//Read a Line assuming a base buffer of 256 bytes and ignoring LineFeed ('\n')
@@ -244,9 +220,9 @@ public:
 			char *buf = new char[bufSize], c = '\0';
 			for ( ; i < stop; i++)
 			{
-				if ((c = fgetc(m_fileP)) == EOF)	//Take c = fgetc() and IF c == EOF, break it	
+				if ((c = (char)fgetc(m_fileP)) == EOF)	//Take c = fgetc() and IF c == EOF, break it	
 				{
-					m_eof = true;
+					//m_eof = true;
 					if (!i)							//If i == 0, then we didn't read nothing! Empty buffer and return null
 					{
 						delete[] buf;
@@ -310,9 +286,9 @@ public:
 			char *buf = new char[cAmount], c = '\0';
 			for (; i < cAmount; i++)
 			{
-				if ((c = fgetc(m_fileP)) == EOF)
+				if ((c = (char)fgetc(m_fileP)) == EOF)
 				{
-					m_eof = true;
+					//m_eof = true;
 					if (!i)
 					{
 						delete[] buf;
@@ -337,8 +313,7 @@ public:
 		m_state = FileStateObject.m_state;
 		m_name = FileStateObject.m_name;
 		m_Lines = FileStateObject.m_Lines;
-		m_stateID = FileStateObject.m_stateID;
-		m_stateIDType = FileStateObject.m_stateIDType;
+		m_stateCode = FileStateObject.m_stateCode;
 	}
 	inline FILE* getFilePointer(void)
 	{
