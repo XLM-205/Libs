@@ -52,10 +52,14 @@
 #define CST_INT32_MIN	   -CST_INT32_MAX - 1		//Down Limit for a 4 Bytes Signed Integer (Inverse of MAX - 1, to prevent warnings)
 #define CST_INT64_MIN	   -CST_INT64_MAX - 1		//Down Limit for a 8 Bytes Signed Integer (Inverse of MAX - 1, to prevent warnings)
 //Variables Digits Count
-#define CST_DIGITS_INT8			 4					//Digits with minus sign consideration
-#define CST_DIGITS_INT16		 6					//Digits with minus sign consideration
-#define CST_DIGITS_INT32		11					//Digits with minus sign consideration
-#define CST_DIGITS_INT64		20					//Digits with minus sign consideration
+#define CST_DIGITS_INT8			 4					//Digits WITH minus sign consideration
+#define CST_DIGITS_INT16		 6					//Digits WITH minus sign consideration
+#define CST_DIGITS_INT32		11					//Digits WITH minus sign consideration
+#define CST_DIGITS_INT64		20					//Digits WITH minus sign consideration
+#define CST_DIGITS_UINT8		 3					//Digits WITHOUT minus sign consideration
+#define CST_DIGITS_UINT16		 5					//Digits WITHOUT minus sign consideration
+#define CST_DIGITS_UINT32		10					//Digits WITHOUT minus sign consideration
+#define CST_DIGITS_UINT64		19					//Digits WITHOUT minus sign consideration
 
 //Unsigned Types --------------------------------------------------------------------------------------------------
 typedef unsigned char				uint8;		//Range > 0 to 255 (1 byte / BYTE)
@@ -101,63 +105,21 @@ enum ExtractByte
 	FORTH
 };
 
+enum ArrayCompare
+{
+	LESS,			// <
+	LEQ,			// <=
+	GREATER,		// >
+	GEQ,			// >=
+	EQUAL,			// ==
+	DIFF			// !=
+};
+
 enum Endian
 {
 	BIG_ENDIAN,		//Most significant bit (generaly the 'sign' bit) stays at the front
 	LITTLE_ENDIAN	//Most significant bit (generaly the 'sign' bit) stays at the back
 };
-
-namespace Tables
-{
-	inline uint64 Fatorial(int i)
-	{
-		switch (i)
-		{
-			default:
-			case 0:
-			case 1:
-				return 1;
-			case 2:
-				return 2;
-			case 3:
-				return 6;
-			case 4:
-				return 24;
-			case 5:
-				return 120;
-			case 6:
-				return 720;
-			case 7:
-				return 5040;
-			case 8:
-				return 40320;
-			case 9:
-				return 362880;
-			case 10:
-				return 3628800;
-			case 11:
-				return 39916800;
-			case 12:
-				return 479001600;
-			case 13:
-				return 6227020800;
-			case 14:
-				return 87178291200;
-			case 15:
-				return 1307674368000;
-			case 16:
-				return 20922789888000;
-			case 17:
-				return 355687428096000;
-			case 18:
-				return 6402373705728000;
-			case 19:
-				return 121645100408832000;
-			case 20:
-				return 2432902008176640000;
-		}
-	}
-}
 
 namespace BitOperations
 {
@@ -447,6 +409,46 @@ namespace BitOperations
 
 namespace Utils
 {
+	inline double getDecimals(double);
+
+	template <typename T>
+	inline T Abs(T &X)
+	{
+		return X > 0 ? X : -X;
+	}
+	inline double Abs(double X)	//If in the binary64 format, the sign bit is the last one (63)
+	{
+		uint64 i = reinterpret_cast<const uint64&>(X);
+		i &= 0x7FFFFFFFFFFFFFFFULL;
+		return reinterpret_cast<const double&>(i);
+	}
+	inline float Abs(float X)	//If in the binary32 format, the sign bit is the last one (31)
+	{
+		uint32 i = reinterpret_cast<const uint32&>(X);
+		i &= 0x7FFFFFFFULL;
+		return reinterpret_cast<const float&>(i);
+	}
+	inline uint64 Abs(int64 X)
+	{
+		const int mask = X >> 63;
+		return (X + mask) ^ mask;
+	}
+	inline uint32 Abs(int32 X)
+	{
+		const int mask = X >> 31;
+		return (X + mask) ^ mask;
+	}
+	inline uint16 Abs(int16 X)
+	{
+		const int mask = X >> 15;
+		return (uint16)((X + mask) ^ mask);
+	}
+	inline uint8 Abs(int8 X)
+	{
+		const int mask = X >> 7;
+		return (uint8)((X + mask) ^ mask);
+	}
+
 	inline int Floor(double N)
 	{
 		return (int)N;
@@ -454,6 +456,71 @@ namespace Utils
 	inline int Celling(double N)
 	{
 		return (int)(N + 0.9999999);
+	}
+	inline int Mod(double Num, double Deno)
+	{
+		return (int)(Num - (Deno * (int)(Num / Deno)));
+	}
+	inline double ModClamped(double Num, double Max)
+	{
+		return Num - (Max * (int)(Num / Max));
+	}
+
+	//Return the amount of decimals places A have in common to B, up to the first miss or -1 if both have > 16 decimal places in common
+	inline int preciseUpTo(double A, double B)
+	{
+		int prec = 0;
+		while ((uint64)A == (uint64)B)
+		{
+			A *= 10;
+			B *= 10;
+			prec++;
+			if (prec > 16)
+			{
+				return -1;
+			}
+		}
+		return prec;
+	}
+	//return true if 'A' == 'B' within 'precision' decimal places, up to 16 places. Defaults to 1.
+	inline bool isEqualRange(double A, double B, int precision)
+	{
+		switch (precision)
+		{
+		default:
+		case 1:
+			return Utils::Abs(A-B) < 0.1;
+		case 2:
+			return Utils::Abs(A-B) < 0.01;
+		case 3:
+			return Utils::Abs(A-B) < 0.001;
+		case 4:
+			return Utils::Abs(A-B) < 0.0001;
+		case 5:
+			return Utils::Abs(A-B) < 0.00001;
+		case 6:
+			return Utils::Abs(A-B) < 0.000001;
+		case 7:
+			return Utils::Abs(A-B) < 0.0000001;
+		case 8:
+			return Utils::Abs(A-B) < 0.00000001;
+		case 9:
+			return Utils::Abs(A-B) < 0.000000001;
+		case 10:
+			return Utils::Abs(A-B) < 0.0000000001;
+		case 11:
+			return Utils::Abs(A-B) < 0.00000000001;
+		case 12:
+			return Utils::Abs(A-B) < 0.000000000001;
+		case 13:
+			return Utils::Abs(A-B) < 0.0000000000001;
+		case 14:
+			return Utils::Abs(A-B) < 0.00000000000001;
+		case 15:
+			return Utils::Abs(A-B) < 0.000000000000001;
+		case 16:
+			return Utils::Abs(A-B) < 0.0000000000000001;
+		}
 	}
 
 	inline bool isOdd(int N)
@@ -468,9 +535,14 @@ namespace Utils
 	{
 		return !isOdd(N);
 	}
-	inline bool haveDecimal(double N)
+
+	inline double getDecimals(double N)
 	{
 		return (N - (int)N);
+	}
+	inline bool haveDecimal(double N)
+	{
+		return getDecimals(N) == 0.0;
 	}
 	inline bool haveDifSignals(double A, double B)
 	{
@@ -520,6 +592,16 @@ namespace Utils
 	inline double radToDeg(double R)
 	{
 		return R * CST_180_PI;
+	}
+	//Clamped to the degree range of [0..360]
+	inline double degToRadClamped(double D)
+	{
+		return Utils::Mod(D, 360) * CST_PI_180;
+	}
+	//Clamped to the radian range of [0..6.28]
+	inline double radToDegClamped(double R)
+	{
+		return Utils::Mod(R, CST_2PI) * CST_180_PI;
 	}
 
 	inline uint64 DecToBin(uint16 n)
@@ -572,7 +654,7 @@ namespace Utils
 		delete[] matrix;
 	}
 	template <class T>
-	inline void matrixFill(T **matrix, int rows, int columns, double st, double inc)
+	inline void matrixFill(T **matrix, int rows, int columns, T st, T inc)
 	{
 		double val = st;
 		for (int i = 0; i < rows; i++)
@@ -585,41 +667,81 @@ namespace Utils
 		}
 	}
 	template <class T>
-	inline void arrayFill(T *arr, int sz, double st, double inc)
+	inline void arrayFill(T *arr, int sz, T st, T inc)
 	{
-		double val = st;
+		T val = st;
 		for (int i = 0; i < sz; i++)
 		{
 			arr[i] = val;
 			val += inc;
 		}
 	}
+	template <class T>
+	inline bool arrayCompare(T *src, T *dst, int szSrc, int szDst, ArrayCompare method)
+	{
+		if (szSrc == szDst)
+		{
+			switch (method)
+			{
+			case ArrayCompare::LESS:
+				for (int i = 0; i < szSrc; i++)
+				{
+					if (src[i] >= dst[i])
+					{
+						return false;
+					}
+				}
+				return true;
+			case ArrayCompare::LEQ:
+				for (int i = 0; i < szSrc; i++)
+				{
+					if (src[i] > dst[i])
+					{
+						return false;
+					}
+				}
+				return true;
+			case ArrayCompare::GREATER:
+				for (int i = 0; i < szSrc; i++)
+				{
+					if (src[i] <= dst[i])
+					{
+						return false;
+					}
+				}
+				return true;
+			case ArrayCompare::GEQ:
+				for (int i = 0; i < szSrc; i++)
+				{
+					if (src[i] < dst[i])
+					{
+						return false;
+					}
+				}
+				return true;
+			case ArrayCompare::EQUAL:
+				for (int i = 0; i < szSrc; i++)
+				{
+					if (src[i] != dst[i])
+					{
+						return false;
+					}
+				}
+				return true;
+			case ArrayCompare::DIFF:
+				for (int i = 0; i < szSrc; i++)
+				{
+					if (src[i] == dst[i])
+					{
+						return false;
+					}
+				}
+				return true;
+			}
+		}
+		return false;
+	}
 
-	template <typename T>
-	inline T Abs(T &X)
-	{
-		return X > 0 ? X : -X;
-	}
-	inline uint64 Abs(int64 &X)
-	{
-		const int mask = X >> ((sizeof(int64) * 8) - 1);
-		return (X + mask) ^ mask;
-	}
-	inline uint32 Abs(int32 &X)
-	{
-		const int mask = X >> ((sizeof(int32) * 8) - 1);
-		return (X + mask) ^ mask;
-	}
-	inline uint16 Abs(int16 &X)
-	{
-		const int mask = X >> ((sizeof(int16) * 8) - 1);
-		return (uint16)((X + mask) ^ mask);
-	}
-	inline uint8 Abs(int8 &X)
-	{
-		const int mask = X >> ((sizeof(int8) * 8) - 1);
-		return (uint8)((X + mask) ^ mask);
-	}
 	template <class T>
 	inline void SafeDelete(T **mem)
 	{
@@ -1206,6 +1328,257 @@ namespace MemoryOperations
 
 //Basic Classes					//	------------------------------------------------------------------------------------------------------
 
+//Self deleting array (to prevent memory leakage)
+template <typename T>
+class ArrayAuto
+{
+protected:
+	const int m_size;
+	T *m_data;
+
+public:
+
+	//Intializes 'n' blank slots
+	ArrayAuto(int n) : m_size(n > 0 ? n : 1)
+	{
+		m_data = new T[m_size];
+	}
+	//Intializes 'n' slots, all with value 'val'
+	ArrayAuto(int n, T val) : m_size(n > 0 ? n : 1)
+	{
+		m_data = new T[m_size];
+		for (int i = 0; i < m_size; i++)
+		{
+			m_data[i] = val;
+		}
+	}
+	//Hosts a previous allocated array, deleting it afterwards
+	ArrayAuto(int n, T *arr) : m_size(n)
+	{
+		m_data = arr;
+	}
+	ArrayAuto(int n, T st, T inc) : m_size(n > 0 ? n : 1)
+	{
+		m_data = new T[m_size];
+		Fill(st, inc);
+	}
+	ArrayAuto(const ArrayAuto<T> &copy) : m_size(copy.Length())
+	{
+		m_data = new T[m_size];
+		for (int i = 0; i < m_size; i++)
+		{
+			m_data[i] = copy[i];
+		}
+	}
+
+	~ArrayAuto()
+	{
+		if (m_data)
+		{
+			delete[] m_data;
+			m_data = nullptr;
+		}
+	}
+
+	void Fill(T start, T inc)
+	{
+		Utils::arrayFill(m_data, m_size, start, inc);
+	}
+
+	int Length(void)
+	{
+		return m_size;
+	}
+
+	bool sizeMatches(const ArrayAuto<T> &a)
+	{
+		return m_size == a.Length();
+	}
+
+	virtual T At(int index)
+	{
+		return m_data[index];
+	}
+	T* Whole(void)
+	{
+		return m_data;
+	}
+
+	//Operators -----------------------------------------------------
+	bool operator<(const T k) const
+	{
+		for (int i = 0; i < m_size; i++)
+		{
+			if (m_data[i] >= k)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+	bool operator<=(const T k) const
+	{
+		for (int i = 0; i < m_size; i++)
+		{
+			if (m_data[i] > k)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+	bool operator>(const T k) const	
+	{
+		for (int i = 0; i < m_size; i++)
+		{
+			if (m_data[i] <= k)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+	bool operator>=(const T k) const
+	{
+		for (int i = 0; i < m_size; i++)
+		{
+			if (m_data[i] < k)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	bool operator<(ArrayAuto<T> &a) const
+	{
+		return Utils::arrayCompare(m_data, a.Whole(), m_size, a.Length(), ArrayCompare::LESS);
+	}
+	bool operator<=(ArrayAuto<T> &a) const
+	{
+		return Utils::arrayCompare(m_data, a.Whole(), m_size, a.Length(), ArrayCompare::LEQ);
+	}
+	bool operator>(ArrayAuto<T> &a) const
+	{
+		return Utils::arrayCompare(m_data, a.Whole(), m_size, a.Length(), ArrayCompare::GREATER);
+	}
+	bool operator>=(ArrayAuto<T> &a) const
+	{
+		return Utils::arrayCompare(m_data, a.Whole(), m_size, a.Length(), ArrayCompare::GEQ);
+	}
+	bool operator==(const T k) const
+	{
+		for (int i = 0; i < m_size; i++)
+		{
+			if (m_data[i] != k)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+	bool operator==(ArrayAuto<T> &a) const
+	{
+		return Utils::arrayCompare(m_data, a.Whole(), m_size, a.Length(), ArrayCompare::EQUAL);
+	}
+	bool operator!=(const T k) const
+	{
+		return !(*this == k);
+	}
+	bool operator!=(ArrayAuto<T> &a) const
+	{
+		return !(*this == a);
+	}
+
+	virtual T& operator[](const int i)
+	{
+		return m_data[i];
+	}
+
+#ifdef _INC_STDIO	//If <stdio.h> is included, allow print function
+	void print(const char *format, const char *onEnd)
+	{
+		for (int i = 0; i < m_size; i++)
+		{
+			printf(format, m_data[i]);
+		}
+		printf(onEnd);
+	}
+	void print(const char *format)
+	{
+		for (int i = 0; i < m_size; i++)
+		{
+			printf(format, m_data[i]);
+		}
+		printf("\n");
+	}
+#endif
+};
+
+template <typename T>
+class ArrayCircular : public ArrayAuto<T>
+{
+public:
+	ArrayCircular(int n) : ArrayAuto<T>(n) { }
+	ArrayCircular(int n, T val) : ArrayAuto<T>(n, val) { }
+	ArrayCircular(int n, T *arr) : ArrayAuto<T>(n, arr) { }
+	ArrayCircular(int n, T st, T inc) : ArrayAuto<T>(n, st, inc) { }
+	
+	ArrayCircular(const ArrayCircular<T> &copy)
+	{
+		this->m_size = copy.Length();
+		this->m_data = new T[this->m_size];
+		for (int i = 0; i < this->m_size; i++)
+		{
+			this->m_data[i] = copy[i];
+		}
+	}
+
+	~ArrayCircular()
+	{
+		if (this->m_data)
+		{
+			delete[] this->m_data;
+			this->m_data = nullptr;
+		}
+	}
+
+	T At(int index)
+	{
+		return this->m_data[index % this->m_size];
+	}
+	//Operators -----------------------------------------------------
+	bool operator<(ArrayCircular<T> &a) const
+	{
+		return Utils::arrayCompare(this->m_data, a.Whole(), this->m_size, a.Length(), ArrayCompare::LESS);
+	}
+	bool operator<=(ArrayCircular<T> &a) const
+	{
+		return Utils::arrayCompare(this->m_data, a.Whole(), this->m_size, a.Length(), ArrayCompare::LEQ);
+	}
+	bool operator>(ArrayCircular<T> &a) const
+	{
+		return Utils::arrayCompare(this->m_data, a.Whole(), this->m_size, a.Length(), ArrayCompare::GREATER);
+	}
+	bool operator>=(ArrayCircular<T> &a) const
+	{
+		return Utils::arrayCompare(this->m_data, a.Whole(), this->m_size, a.Length(), ArrayCompare::GEQ);
+	}
+	bool operator==(ArrayCircular<T> &a) const
+	{
+		return Utils::arrayCompare(this->m_data, a.Whole(), this->m_size, a.Length(), ArrayCompare::EQUAL);
+	}
+	bool operator!=(ArrayCircular &a) const
+	{
+		return !(*this == a);
+	}
+
+	T& operator[](const int i)
+	{
+		return this->m_data[i % this->m_size];
+	}
+};
+
 class BaseString
 {
 protected:
@@ -1514,10 +1887,10 @@ public:
 	{
 		return m_text[Index];
 	}
-	char& operator[](int Index)
+	/*char& operator[](int Index)
 	{
 		return m_text[Index];
-	}
+	}*/
 };
 
 class String32 : public BaseString
