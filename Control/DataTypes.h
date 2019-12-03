@@ -29,69 +29,6 @@ enum AutomataAdvance
 	ADVANCE_RIGHT		//Advance the tape to the right
 };
 
-//Self deleting array (to prevent memory leakage)
-template <typename T>
-class AutoArray
-{
-private:
-	const int m_size;
-	T *m_data;
-	
-public:
-
-	AutoArray(int n) : m_size(n > 0? n : 1)
-	{
-		m_data = new T[m_size];
-	}
-	AutoArray(int n, T val) : m_size(n > 0 ? n : 1)
-	{
-		m_data = new T[m_size];
-		for (int i = 0; i < m_size; i++)
-		{
-			m_data[i] = val;
-		}
-	}
-	AutoArray(const AutoArray<T> &copy) : m_size(copy.Length())
-	{
-		m_data = new T[m_size];
-		for (int i = 0; i < m_size; i++)
-		{
-			m_data[i] = copy[i];
-		}
-	}
-
-	~AutoArray()
-	{
-		if (m_data)
-		{
-			delete[] m_data;
-			m_data = nullptr;
-		}
-	}
-	
-	int Length(void)
-	{
-		return m_size;
-	}
-	
-	//Operators -----------------------------------------------------
-	T& operator[](const int i)
-	{
-		return m_data[i];
-	}
-
-#ifdef _INC_STDIO	//If <stdio.h> is included, allow print function
-	void print(const char *format, const char *onEnd)
-	{
-		for (int i = 0; i < m_size; i++)
-		{
-			printf(format, m_data[i]);
-		}
-		printf(onEnd);
-	}
-#endif
-};
-
 template <typename T>
 class Node
 {
@@ -884,6 +821,21 @@ public:
 	}*/
 
 #ifdef _INC_STDIO
+	void print(const char *format, int spacing)
+	{
+		Node<T> *runner = m_Head;
+		for(int i = 0; runner; i++)
+		{
+			printf(format, *runner->getData());
+			if (!((i + 1) % spacing))
+			{
+				printf("\n");
+			}
+			runner = runner->getNext();
+		}
+		printf("\n");
+	}
+
 	void print(const char *format)
 	{
 		Node<T> *runner = m_Head;
