@@ -93,7 +93,7 @@ namespace Math
 
 	// !! WARNING !!
 	//Assembly functions may or may not be incompatible and / or interfere with compiler optimizations!
-	// !! USE ON YOUR WON RISK !!
+	// !! USE ON YOUR OWN RISK !!
 
 	//A safer sqrt, albeit slower
 	/*double Sqrt_Fast(double n)
