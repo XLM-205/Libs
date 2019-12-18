@@ -566,6 +566,7 @@ public:
 		if (m_lastX != x)	//If we have evaluated this same x last time, don't waste CPU doing it again
 		{
 			m_lastX = x;
+			m_lastSolve = 0;
 			for (int i = stop - 1; i >= 0; i--)
 			{
 				m_lastSolve += m_elements[i] * superPow;

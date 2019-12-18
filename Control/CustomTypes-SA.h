@@ -482,7 +482,7 @@ namespace Utils
 		}
 		return prec;
 	}
-	//return true if 'A' == 'B' within 'precision' decimal places, up to 16 places. Defaults to 1.
+	//Return true if 'A' == 'B' within 'precision' decimal places, up to 16 places. Defaults to 1.
 	inline bool isEqualRange(double A, double B, int precision)
 	{
 		switch (precision)
@@ -1347,15 +1347,17 @@ public:
 	ArrayAuto(int n, T val) : m_size(n > 0 ? n : 1)
 	{
 		m_data = new T[m_size];
-		for (int i = 0; i < m_size; i++)
-		{
-			m_data[i] = val;
-		}
+		Set(val);
 	}
 	//Hosts a previous allocated array, deleting it afterwards
 	ArrayAuto(int n, T *arr) : m_size(n)
 	{
 		m_data = arr;
+	}
+	ArrayAuto(int n, const T *arr) : m_size(n)
+	{
+		m_data = new T[m_size];
+		Set(arr);
 	}
 	ArrayAuto(int n, T st, T inc) : m_size(n > 0 ? n : 1)
 	{
@@ -1383,6 +1385,32 @@ public:
 	void Fill(T start, T inc)
 	{
 		Utils::arrayFill(m_data, m_size, start, inc);
+	}
+
+	void Set(T *arr)
+	{
+		for (int i = 0; i < m_size; i++)
+		{
+			m_data[i] = arr[i];
+		}
+	}
+	void Set(T val)
+	{
+		for (int i = 0; i < m_size; i++)
+		{
+			m_data[i] = val;
+		}
+	}
+	virtual void Set(T val, int i)
+	{
+		m_data[i] = val;
+	}
+	virtual void Set(T *arr, int st)
+	{
+		for (int i = st; i < m_size; i++)
+		{
+			m_data[i] = arr[i];
+		}
 	}
 
 	int Length(void)
@@ -1543,6 +1571,18 @@ public:
 		}
 	}
 
+	void Set(T val, int i)
+	{
+		this->m_data[At(i)] = val;
+	}
+	void Set(T *arr, int st)
+	{
+		for (int i = st; i < this->m_size; i++)
+		{
+			this->m_data[At(i)] = arr[i];
+		}
+	}
+
 	T At(int index)
 	{
 		return this->m_data[index % this->m_size];
@@ -1644,6 +1684,14 @@ public:
 	void Clear()
 	{
 		for(int i = 0; m_text[i]; i++)
+		{
+			m_text[i] = '\0';
+		}
+		m_length = 0;
+	}
+	void ClearFull()
+	{
+		for (uint32 i = 0; i < m_size; i++)
 		{
 			m_text[i] = '\0';
 		}
@@ -1891,6 +1939,25 @@ public:
 	{
 		return m_text[Index];
 	}*/
+
+#ifdef _INC_STDIO
+	void Print(void)
+	{
+		printf("%s\n", m_text);
+	}
+	void Print(const char *format)
+	{
+		printf(format, m_text);
+	}
+	void Scan(const char *format)
+	{
+		setbuf(stdin, 0);
+		scanf(format, m_text);
+		m_length = 0;
+		while (m_text[++m_length]);
+		m_text[m_size - 1] = '\0';	//Failsafe
+	}
+#endif
 };
 
 class String32 : public BaseString
@@ -2501,5 +2568,57 @@ public:
 	{
 		callback = func;
 	}
+};
+
+class ErrorDescription
+{
+protected:
+	const static int m_noError = 0x6F6B6179;	//No Error (Cleared or Default)
+	int m_code;									//Error Code
+	String64 m_desc;							//Error Description
+
+public:
+	ErrorDescription(const int code, const char *desc)
+	{
+		SetError(code, desc);
+	}
+	ErrorDescription()
+	{
+		ClearError();
+	}
+
+	//Returns true if no error was defined (or was cleared)
+	bool haveNoError(void)
+	{
+		return m_code == m_noError;
+	}
+
+	int Code(void)
+	{
+		return m_code;
+	}
+	const char* Description(void)
+	{
+		return m_desc.getString();
+	}
+
+	void SetError(int code, const char *desc)
+	{
+		m_code = code;
+		m_desc.setString(desc);
+	}
+
+	void ClearError(void)
+	{
+		m_code = m_noError;
+		m_desc.setString("No Error");
+	}
+
+#ifdef _INC_STDIO
+	void print(void)
+	{
+		printf("[%-6d] - '%s'\n", m_code, m_desc.getString());
+	}
+#endif
 };
 #endif

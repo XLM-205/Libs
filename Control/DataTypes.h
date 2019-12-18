@@ -16,6 +16,15 @@
 #ifndef _H_DATA_TYPES_
 #define _H_DATA_TYPES_
 
+#include "CustomTypes-SA.h"
+
+#ifdef DATA_TYPES_FOREACH											
+	//'Foreach' hack for NOT POINTER list
+	#define inTheList(forEachObject, ofTheList) for(auto forEachObject = ofTheList.RetrieveFirst(); forEachObject; forEachObject = forEachObject->getNext())
+	//'Foreach' hack for POINTER list
+	#define inTheListP(forEachObject, ofTheList) for(auto forEachObject = ofTheList->RetrieveFirst(); forEachObject; forEachObject = forEachObject->getNext())
+#endif
+
 enum StackMode
 {
 	STACK_FIFO,		//First-In-First-Out *(Queue)
