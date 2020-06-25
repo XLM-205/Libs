@@ -1,0 +1,32 @@
+//Keeps track of a task progress. Basic version (pgtk)
+//Variables available: bool DisplayProgress / bool is_finished / char CurrentWorkWr[31] / uint16 StepsTODO / uint16 CurrentStep
+class ProgressTracker
+{
+public:
+	virtual int getProgressTrackerCurrentStep(void){ return pgtkCurrentStep; };			//Return the current step the code is working now
+	virtual int getProgressTrackerStepsTODO(void){ return pgtkStepsTODO; };				//Return the total of steps required to finish a work
+	virtual char* getProgressTrackerCurrentWorkName(void){ return pgtkCurrentWorkWr; };	//Return the current action name
+
+protected:
+	bool pgtkDisplayProgress = false;							//Display progress?
+	char pgtkCurrentWorkWr[31];									//Work name
+	uint16 pgtkStepsTODO = 0;									//Total steps to finish work
+	uint16 pgtkCurrentStep = 0;									//Current action (from 0 to last step)
+	char* pgtkGlobalWorkReader;
+
+	//Default Constructor
+	ProgressTracker(void)
+	{
+		pgtkCurrentWorkWr[0] = 'N';
+		pgtkCurrentWorkWr[1] = 'O';
+		pgtkCurrentWorkWr[2] = 'N';
+		pgtkCurrentWorkWr[3] = 'E';
+		pgtkCurrentWorkWr[4] = '\0';
+	}
+	//Sets a Current Work Name to match another instance (WIP)
+	//Needs to make the "CurrentWorkWr" points to another "CurrentWorkWr" instance based on it's pointer (Super Global)
+	//void setTwin(char (&TargetTwin)[31])
+	//{
+	//	CurrentWorkWr = TargetTwin;
+	//}
+};

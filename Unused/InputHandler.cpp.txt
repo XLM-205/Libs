@@ -1,0 +1,358 @@
+//Special callbacks. To enable them, uncomment in the header, here and the 'InputInterceptor' below
+//void(*MouseLeftClickHandler)(Vec2<int16> MPos) = nullptr;				//Mouse State Change (Left click) Callback
+//void(*MouseLeftUpHandler)(Vec2<int16> MPos) = nullptr;				//Mouse State Change (Left click UP) Callback
+//void(*MouseLeftDownHandler)(Vec2<int16> MPos) = nullptr;				//Mouse State Change (Left click DOWN) Callback
+
+//void(*MouseWheelClickHandler)(Vec2<int16> MPos) = nullptr;				//Mouse Wheel State Change (Click) Callback
+//void(*MouseWheelUpHandler)(Vec2<int16> MPos) = nullptr;				//Mouse Wheel State Change (Click UP) Callback
+//void(*MouseWheelDownHandler)(Vec2<int16> MPos) = nullptr;				//Mouse Wheel State Change (Click DOWN) Callback
+
+//void(*MouseRightClickHandler)(Vec2<int16> MPos) = nullptr;				//Mouse State Change (Right click) Callback
+//void(*MouseRightUpHandler)(Vec2<int16> MPos) = nullptr;				//Mouse State Change (Right click UP) Callback
+//void(*MouseRightDownHandler)(Vec2<int16> MPos) = nullptr;				//Mouse State Change (Right click DOWN) Callback
+
+//void(*MouseWheelMoveHandler)(Vec2<int16> MPos, int8 MWheelState) = nullptr;		//Mouse Wheel State Change (Movement) Callback
+//void(*MouseMoveHandler)(Vec2<int16> MPos) = nullptr;					//Mouse State Change (Movement) Callback
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+//void MWInputHandler::poolInput(void)
+//{
+//	//UINT_PTR Timer = SetTimer(CurrHandle, NULL, 1, NULL);
+//	//MessageStatus = PeekMessage(&InMsg, CurrHandle, WM_KEYDOWN, WM_MOUSELEAVE, PeekFlags);
+//	//MessageStatus = GetMessage(&InMsg, CurrHandle, 0, 0);
+//	//KillTimer(NULL, Timer);
+//	if (PeekMessage(&InMsg, CurrHandle, 0, 0, PeekFlags))
+//	{
+//		//GetMessage Parameters and return values:
+//		//	*Returns:
+//		//	--> != 0 if it catches an message other than 'WM_QUIT' and == 0 if it is. If returns -1, then an error have occurred
+//		//	*Parameters:
+//		//	--> (&MSG, hWnd, MSGFilterMin, MSGFilterMax) : (Windows Message Information, Windows Handle, Min Range Filter, Max Range Filter)
+//		//		Using 0 for both range filters, force them to use the full range of message (NO range filtering)
+
+//		//PeekMessage Parameters:
+//		//	*The last one is for a flag. In this case, 'PM_REMOVE' is used to remove the message upon intercepting it
+//		//		--> 'PeekMessage' does NOT freeze the application when pooling for messages! HOORAY
+
+//		// !!!!! IMPORTANT !!!!! ------------------------------------------------------------------------
+//		//
+//		// The Message Loop (GetMessage()) does NOT work with a console aplication!! It requires an actual window
+//		// to work properly (an OpenGL Window works too)!!!
+//		//
+//		// !!!!! IMPORTANT !!!!! ------------------------------------------------------------------------
+
+//		switch (InMsg.message)
+//		{
+//		case WM_KEYDOWN:
+//			if (!isKeyPressed(InMsg.wParam))
+//			{
+//				KeyPressed[InMsg.wParam] = true;
+//			}
+//			else if (BitOperations::IsBitSet<uint32>(InMsg.lParam, 30));
+//			{
+//				//std::cout << "HOLDING [" << (char)InMsg.wParam << "]\n";
+//			}
+//			IsKeyPressed = true;
+//			break;
+//		case WM_KEYUP:
+//			KeyPressed[InMsg.wParam] = false;
+//			break;
+//		case WM_MOUSEMOVE:
+//			//Getting X and Y values of the mouse on the active part of the window (excluding OS window controls)
+//			//Follows the same rules as GLUT's mouse functions: X increments from the LEFT to the RIGHT, and Y increments from the TOP to the BOTTOM. Both starts from (0, 0)
+//			MousePos._X = GET_X_LPARAM(InMsg.lParam);
+//			MousePos._Y = GET_Y_LPARAM(InMsg.lParam);
+//			IsMouseMoving = true;
+//			break;
+//		//case WM_NCMOUSEMOVE:
+//		//	std::cout << "Mouse On Controls Moviment\n";
+//		//	break;
+//		case WM_MOUSEWHEEL:
+//			if (GET_WHEEL_DELTA_WPARAM(InMsg.wParam) >= 0)	//If the value of delta is HIGHER than 0, then the user is scrolling AWAY from the mouse (UP)
+//			{
+//				MouseWheel = 1;
+//			}
+//			else											//Therefore, if the value is LOWER than 0,
+//			{
+//				MouseWheel = -1;
+//			}
+//			break;
+//		case WM_LBUTTONDOWN:
+//			IsMouseLeftDown = true;
+//			break;
+//		case WM_LBUTTONUP:
+//			IsMouseLeftDown = false;
+//			break;
+//		case WM_RBUTTONDOWN:
+//			IsMouseRightDown = true;
+//			break;
+//		case WM_RBUTTONUP:
+//			IsMouseRightDown = false;
+//			break;
+//		case WM_MBUTTONDOWN:
+//			IsMouseMiddleDown = true;
+//			break;
+//		case WM_MBUTTONUP:
+//			IsMouseMiddleDown = false;
+//			break;
+//		default:
+//			std::cout << "Untreated Message Received\n";
+//			break;
+//		}
+//	}
+//	else								//No message received
+//	{
+//		IsKeyPressed = false;
+//		IsMouseMoving = false;
+//		MouseWheel = 0;
+//		//memset(KeyPressed, 0, 256);
+//	}
+//	//'GetMessage()' specifics
+//	//else if (MessageStatus == 0)		//Received a 'WM_QUIT' message. Execute exit procedures
+//	//{
+//	//	//std::cout << "Resquest to quit!\n";
+//	//}
+//	//else								//Failed to get messages
+//	//{
+//	//	
+//	//}
+//}
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+//void __stdcall MWInputHandler::setExternalHandleMouseLeftClick(void(*Handler)(Vec2<int16> MPos))
+//{
+//	MouseLeftClickHandler = Handler;
+//}
+//void __stdcall MWInputHandler::setExternalHandleMouseLeftUp(void(*Handler)(Vec2<int16> MPos))
+//{
+//	MouseLeftUpHandler = Handler;
+//}
+//void __stdcall MWInputHandler::setExternalHandleMouseLeftDown(void(*Handler)(Vec2<int16> MPos))
+//{
+//	MouseLeftDownHandler = Handler;
+//}
+
+//void __stdcall MWInputHandler::setExternalHandleMouseRightClick(void(*Handler)(Vec2<int16> MPos))
+//{
+//	MouseRightClickHandler = Handler;
+//}
+//void __stdcall MWInputHandler::setExternalHandleMouseRightUp(void(*Handler)(Vec2<int16> MPos))
+//{
+//	MouseRightUpHandler = Handler;
+//}
+//void __stdcall MWInputHandler::setExternalHandleMouseRightDown(void(*Handler)(Vec2<int16> MPos))
+//{
+//	MouseRightDownHandler = Handler;
+//}
+
+//void __stdcall MWInputHandler::setExternalHandleMouseWheelClick(void(*Handler)(Vec2<int16> MPos))
+//{
+//	MouseWheelClickHandler = Handler;
+//}
+//void __stdcall MWInputHandler::setExternalHandleMouseWheelUp(void(*Handler)(Vec2<int16> MPos))
+//{
+//	MouseWheelUpHandler = Handler;
+//}
+//void __stdcall MWInputHandler::setExternalHandleMouseWheelDown(void(*Handler)(Vec2<int16> MPos))
+//{
+//	MouseWheelDownHandler = Handler;
+//}
+
+//void __stdcall MWInputHandler::setExternalHandleMouseWheelMove(void(*Handler)(Vec2<int16> MPos, int8 MWheelState))
+//{
+//	MouseWheelMoveHandler = Handler;
+//}
+//void __stdcall MWInputHandler::setExternalHandleMouseMovement(void(*Handler)(Vec2<int16> MPos))
+//{
+//	MouseMoveHandler = Handler;
+//}
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+//if (StickyVKey)
+//{	
+//	//If no message was found, but a key was pressed before, send a "KEY_UP" message, to avoid false positives
+//	Handler(MWIH_MESSAGE_KEYUP, StickyVKey, MousePos);
+//}
+//else
+//{
+//	//No message found. Send last key press and mouse position and say this message was 'AFK'
+//	Handler(MWIH_MESSAGE_AFK, StickyVKey, MousePos);
+//}
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+//A more complete veriosn of 'InputInterceptor' (Wich may cost more CPU cycles) \/
+/*
+LRESULT __stdcall MWInputHandler::InputInterceptor(HWND hWnd, uint32 Msg, WPARAM wParam, LPARAM lParam)
+{
+static bool LeftCalled = false;
+static bool RightCalled = false;
+static bool MiddleCalled = false;
+switch (Msg)
+{
+case WM_KEYDOWN:
+KeyPressed[wParam] = true;
+KeyPressHandler(wParam);
+break;
+case WM_KEYUP:
+KeyPressed[wParam] = false;
+KeyReleaseHandler(wParam);
+break;
+case WM_MOUSEMOVE:
+//Getting X and Y values of the mouse on the active part of the window (excluding OS window controls)
+//Follows the same rules as GLUT's mouse functions: X increments from the LEFT to the RIGHT, and Y increments from the TOP to the BOTTOM. Both starts from (0, 0)
+MousePos._X = MWInputHandler::getHighWord(lParam);
+MousePos._Y = MWInputHandler::getLowWord(lParam);
+if (MouseMoveHandler)
+{
+MouseMoveHandler(MousePos);
+}
+else
+{
+MouseHandler(MousePos, 0, 0);
+}
+break;
+//case WM_NCMOUSEMOVE:
+//	std::cout << "Mouse On Controls Moviment\n";
+//	break;
+case WM_MOUSEWHEEL:
+if (((int8)MWInputHandler::getLowWord(wParam)) >= 0)	//If the value of delta is HIGHER than 0, then the user is scrolling AWAY from the mouse (UP)
+{
+MouseWheel = 1;
+}
+else													//Therefore, if the value is LOWER than 0, the the user is scrolling TOWARS him
+{
+MouseWheel = -1;
+}
+if (MouseWheelMoveHandler)
+{
+MouseWheelMoveHandler(MousePos, MouseWheel);
+}
+else
+{
+MouseHandler(Vec2<int16>(-1, -1), MouseWheel, 0);
+}
+break;
+case WM_LBUTTONDOWN:
+if (MouseLeftClickHandler)
+{
+if (!LeftCalled)
+{
+MouseLeftClickHandler(MousePos);
+LeftCalled = true;
+}
+}
+else if (MouseLeftDownHandler)
+{
+MouseLeftDownHandler(MousePos);
+}
+else
+{
+MouseHandler(Vec2<int16>(-1, -1), 0, 1);
+}
+IsMouseLeftDown = true;
+break;
+case WM_LBUTTONUP:
+if (MouseLeftUpHandler)
+{
+MouseLeftUpHandler(MousePos);
+}
+else
+{
+MouseHandler(Vec2<int16>(-1, -1), 0, 1);
+}
+LeftCalled = false;
+IsMouseLeftDown = false;
+break;
+case WM_RBUTTONDOWN:
+if (MouseRightClickHandler)
+{
+if (!RightCalled)
+{
+MouseRightClickHandler(MousePos);
+RightCalled = true;
+}
+}
+else if (MouseRightDownHandler)
+{
+MouseRightDownHandler(MousePos);
+}
+else
+{
+MouseHandler(Vec2<int16>(-1, -1), 0, 2);
+}
+IsMouseRightDown = true;
+break;
+case WM_RBUTTONUP:
+if (MouseRightDownHandler)
+{
+MouseRightUpHandler(MousePos);
+}
+else
+{
+MouseHandler(Vec2<int16>(-1, -1), 0, 2);
+}
+RightCalled = false;
+IsMouseRightDown = false;
+break;
+case WM_MBUTTONDOWN:
+if (MouseWheelClickHandler)
+{
+if (!MiddleCalled)
+{
+MouseWheelClickHandler(MousePos);
+}
+}
+else if (MouseWheelDownHandler)
+{
+MouseWheelDownHandler(MousePos);
+}
+else
+{
+MouseHandler(Vec2<int16>(-1, -1), 0, 3);
+}
+IsMouseMiddleDown = true;
+break;
+case WM_MBUTTONUP:
+if (MouseWheelUpHandler)
+{
+MouseWheelUpHandler(MousePos);
+}
+else
+{
+MouseHandler(Vec2<int16>(-1, -1), 0, 3);
+}
+MiddleCalled = false;
+IsMouseMiddleDown = false;
+break;
+case WM_CLOSE:			//Called when the window received a 'close' signal
+if (CloseHandler)
+{
+return CloseHandler();
+}
+else
+{
+UntreatedMessages = MWIH_MESSAGE_CLOSE;
+}
+break;
+case WM_SIZE:		//Called when the window is resizing
+if (ResizeHandler)
+{
+ResizeHandler(MWInputHandler::getHighWord(lParam), MWInputHandler::getLowWord(lParam));
+}
+else
+{
+UntreatedMessages = MWIH_MESSAGE_SIZE;
+SpecialParameter = lParam;
+}
+break;
+default:
+//std::cout << "Untreated Message Received\n";
+break;
+}
+return DefWindowProc(hWnd, Msg, wParam, lParam);
+}
+*/

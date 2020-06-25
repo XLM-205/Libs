@@ -1,0 +1,95 @@
+!-----------------------Moon Wiz Atlas File Definition (.mwa)-----------------------
+!		-Definition Version.: 0.9
+!		*This file defines all symbols and the structure that should and must appear in a .mwa file
+!		*ALL .mwa PARSERS SHOULD REFER TO THIS STRUCTURE
+!		*Concepts:
+!			-This FILE manages a SINGLE or MULTIPLE SHEETS
+!			-A SHEET, is a collection of SEQUENCES. Each SHEET contains a SINGLE IMAGE PATH
+!			-A SEQUENCE is the collection of SPRITE DATA (UVX/UVY) contained between 'ID', 'F'/'FT', 'SP' or 'END' symbols
+!			-A SELECTION is a pair of UV data. A SELECTION is composed of TWO UV SYMBOLS
+!			-AN UV DATA defines a point in the texture, either on X or Y axis. It ranges from 0 ~ 1, and MUST appear in pairs (UVA/UVB)
+!				*UVA refers to the UPPER RIGHT CORNER of a texture
+!				*UVB refers to the BOTTOM LEFT CORNER of a texture
+! !
+!					+---------------[+] UVA(X/Y)
+!					|				 |
+!					|				 |
+!					|	- SPRITE -	 |
+!					|				 |
+!					|				 |
+!		   UVB(X/Y)[+]---------------+
+! !
+! -Required Symbols (In order of appearance)-
+! 'F <string>'	-> Defines the sprite-sheet File path. Must appear first in the file and only second to 'FT' or 'DT' symbols
+!				   Only ONE per SHEET
+! 'T <uint8>' 	-> Defines the Type of sprite the Atlas is referring to: 
+!					0 -> Classic sprite-sheet
+!					1 -> Character sprite-sheet (character table)
+!				   If 'T' == 1, 'UV' format comes with a complementary '<uint8>', that defines the CHARACTER VALUE
+!				   Only ONE per SHEET
+! 'SQ <uint16>'	-> Defines the amount of SeQuences (total) this Atlas have. Only ONE per SHEET
+! 'SL <uint16>'	-> Defines the amount of SeLections (total) this Atlas have. Only ONE per SHEET
+! 'GS <int16>'	-> Defines the Global Speed of each sequence. Only ONE per SHEET. Possible values:
+!					 -1 -> Each sequence have a separate speed (must be defined in 'SP')
+!					  0 -> Sequences don't animate
+!					 >0 -> Speed for all sequences. If defined
+! 'ID <uint16> <uint16> <string[32]>'	-> Defines the sequence ID, the amount of selections of this sequence and it's name.
+!										   Until the next 'ID', 'F' ,'SP' or the 'END' specifier appearance, all data is SELECTION data for this sequence, in order
+! 'UV <float> <float>'	-> Defines a SELECTION UV data of the texture. First value is UVX, and second is UVY, both ranging from 0 ~ 1.
+!						   This should ALWAYS COME IN PAIRS, since the first one is UVA and the second, UVB
+! 'UV <float> <float> <uint8>' -> Defines a SELECTION UV data of the texture.
+!								  Same as above, the first value is UVX, second is UVY and the third is the CHAR VALUE. This only appears if 'T' == 1.
+!								  On the second appearance of 'UV' with this format, there SHOULD NOT have another '<uint8>' 
+! 'SP <uint16>'	-> Defines the SPeed of this sequence, in FPS. Should ONLY appear if GS == -1. Need to appear before an 'ID' specifier
+!				   If declared with 'GS' >= 0, will be ignored
+!				   Only ONE per SEQUENCE
+! 'END'	-> File END 
+! -Optional Symbols (Order explicit)
+! !
+! 'CL <uint8> <uint8> <uint8> <uint8>' -> Defines the background color of the sprite that should be removed when drawing the sprite.
+!										  Format: <Red> <Green> <Blue> <Alpha>
+!										  Should appear AFTER 'ID' and before any 'UV' symbol.
+!										  Only ONE per sequence.
+!										  NOT EXPLICIT REQUIRED: Only account for sprite background IF this symbol is declared.
+! 'FT <uint16>'	-> Defines the Total amount of sprite-sheets this file manages. Only required if more than one file is declared
+!				   If declared, MUST appear BEFORE 'F'. One declaration per file
+! !
+! -Extra Symbols (Not explicit required)
+! 'D <string[512]>	-> Description of the sprite-sheet. If declared, should appear anywhere BEFORE an 'ID' block.
+!					   Should not contain any required information for correct sprite-sheet usage.
+!					   Can have multiple 'D' symbols, one for each sheet. If more than one, a 'DT' symbol must appear
+! 'DT <uint16>'	-> Defines the Total amount of descriptions this file contains. Should appear AFTER the 'F' symbol (if single sheet) or 'FT' if multiple
+!				   One declaration per file
+! '!' -> Defines a comment line with NO relevant information for the parser. Parsers should ignore these
+!		 Should NOT be an empty line
+! Below, an example of a valid .mwa file
+FT 2
+DT 2
+F C:/Users/TestA.png
+T 0
+SQ 2
+SL 2
+GS 60
+D First Test
+ID 0 1 Jump_Anim
+UV 0.2 0.8
+UV 0.2 0.1
+ID 1 1 Jump_Fall
+CL 254 128 75 0
+UV 0.85 0.52
+UV 0.81 0.59
+F C:/Users/TestB.png
+D Second Test
+T 1
+SQ 2
+SL 2
+GS -1
+SP 32
+ID 0 1 Fall_Anim
+UV 0.2 0.8 55
+UV 0.2 0.1
+SP 24
+ID 1 1 PotatoOS_Anim
+UV 0.85 0.52 67
+UV 0.99 0.12
+END

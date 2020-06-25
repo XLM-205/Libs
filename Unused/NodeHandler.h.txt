@@ -1,0 +1,1440 @@
+/*-------Node Handler & Support-------
+*	- WIP
+*
+*
+*	Moon Wiz Studios (c) - --/--/----
+*	by: Ramon Darwich de Menezes
+*
+*	
+*	YOU MAY NOT copy, publish nor make profit from this file without permission
+*	YOU MAY use it in any project of your own or edit this file, given the proper credits to Moon Wiz Studios
+*   This notice MAY NOT be removed nor altered from any source distribution
+*
+*	Version 0.98
+*/
+
+
+#ifndef _MWNODE_H_
+#define _MWNODE_H_
+#include <Interface & Control\CustomTypes-SA.h>
+#include <iostream>
+
+//-----------------------------TODO---------------------------------
+//
+// Test new functionalities on 'ListManager' and 'ListPointedManager
+//
+//-----------------------------TODO---------------------------------
+
+//Commom Types Definitions
+#define Nodei Node<int>								//INT Node
+#define Nodef Node<float>							//FLOAT Node
+#define Noded Node<double>							//DOUBLE Node
+
+//If defined, the destructor will try to delete the 'NodeData' (if it's 'NodePointed') OR zero it (if it's 'Node')
+
+//#define NODE_DTOR_DELETE
+#define NODE_DEBUG
+
+enum ArrayConversionDirection
+{
+	MWN_DIRECTION_TO_NEXT,
+	MWN_DIRECTION_TO_PREVIOUS
+};
+
+//Basic Node (a.k.a Pure Node)
+//Holds a pointer for the next Node, Previous Node and single value or structure
+template <class type>
+class Node
+{
+protected:
+	type NodeData;
+	Node *Next;		//Pointer to the next node
+	Node *Prev;		//Pointer to the previous node
+
+public:
+	Node()
+	{
+		Next = nullptr;
+		Prev = nullptr;
+	#ifdef NODE_DEBUG	
+		std::cout << "[BULD] Node at : [" << this << "]\n";
+	#endif	
+	}
+	Node(type In)
+	{
+		NodeData = In;
+		Next = nullptr;
+		Prev = nullptr;
+#ifdef NODE_DEBUG	
+		std::cout << "[BULD] Node at : [" << this << "] with value of [" << this->NodeData << "]\n";
+#endif	
+	}
+
+	Node* addNode(Node* RootNode)
+	{
+		Node* Checker = RootNode;
+		//Search for the nearest node that DON'T HAVE A NEXT POINTER
+		while (Checker->getNext() != nullptr)
+		{
+			Checker = Checker->getNext();
+			//Protection against circular linked list
+			if (Checker == RootNode)
+			{
+				return nullptr;
+			}
+		}
+		Checker->setNext(new Node<type>);
+		if (Checker->getNext() == nullptr)
+		{
+			//Allocation failed!
+			return nullptr;
+		}
+		Checker->getNext()->setPrevious(Checker);
+		return Checker->getNext();
+	}
+	Node* addNode(Node* RootNode, type& Data)
+	{
+		Node* Checker = RootNode;
+		//Search for the nearest node that DON'T HAVE A NEXT POINTER
+		while (Checker->getNext() != nullptr)
+		{
+			Checker = Checker->getNext();
+			//Protection against circular linked list
+			if (Checker == RootNode)
+			{
+				return nullptr;
+			}
+		}
+		Checker->setNext(new Node<type>);
+		if (Checker->getNext() == nullptr)
+		{
+			//Allocation failed!
+			return nullptr;
+		}
+		Checker->getNext()->setPrevious(Checker);
+		Checker->getNext()->setData(Data);
+		return Checker->getNext();
+	}	//Try generalizing parameter as a reference, to prevent object construction (TODO: PERFOMANCE)
+	Node* addNodeAfterOf(Node* TargetNode)
+	{
+		//Preventing adding a node after TargetNode, if it was already created (this->Next is NOT nullptr)
+		if (TargetNode->getNext() != nullptr)
+		{
+			return this;
+		}
+		else if (TargetNode == nullptr)
+		{
+			return nullptr;
+		}
+		Node* Temp = new Node<type>;
+		if (Temp == nullptr)
+		{
+			return nullptr;
+		}
+		TargetNode->setNext(Temp);
+		Temp->setPrevious(TargetNode);
+		TargetNode = Temp;
+		return Temp;
+	}
+	Node* addNodeAfterOf(Node* TargetNode, type& Data)
+	{
+		//Preventing adding a node after TargetNode, if it was already created (this->Next is NOT nullptr)
+		if (TargetNode->getNext() != nullptr)
+		{
+			return this;
+		}
+		else if (TargetNode == nullptr)
+		{
+			return nullptr;
+		}
+		Node* Temp = new Node<type>;
+		if (Temp == nullptr)
+		{
+			return nullptr;
+		}
+		TargetNode->setNext(Temp);
+		Temp->setPrevious(TargetNode);
+		TargetNode = Temp;
+		Temp->setData(Data);
+		return Temp;
+	}
+	Node* addNodeBetweenOf(Node* AfterThisNode, Node* BeforeThatNode)
+	{
+		if (AfterThisNode == nullptr || BeforeThatNode == nullptr)
+		{
+			return nullptr;
+		}
+		Node* Temp = new Node<type>;
+		if (Temp == nullptr)
+		{
+			return nullptr;
+		}
+		AfterThisNode->setNext(Temp);
+		BeforeThatNode->setNext(Temp->getNext());
+		BeforeThatNode->setPrevious(Temp);
+		Temp->setNext(BeforeThatNode);
+		Temp->setPrevious(AfterThisNode);
+		return Temp;
+	}
+	Node* addNodeBetweenOf(Node* AfterThisNode, Node* BeforeThatNode, type& Data)
+	{
+		if (AfterThisNode == nullptr || BeforeThatNode == nullptr)
+		{
+			return nullptr;
+		}
+		Node* Temp = new Node<type>;
+		if (Temp == nullptr)
+		{
+			return nullptr;
+		}
+		AfterThisNode->setNext(Temp);
+		BeforeThatNode->setNext(Temp->getNext());
+		BeforeThatNode->setPrevious(Temp);
+		Temp->setNext(BeforeThatNode);
+		Temp->setPrevious(AfterThisNode);
+		Temp->setData(Data);
+		return Temp;
+	}
+	void clearData(void)
+	{
+		memset(this, 0, sizeof(type));
+	}
+	void clearNode(void)	//WARNING: This method DOES NOT FREE MEMORY (like 'removeThisNode') as this method does NOT calls delete
+	{
+		memset(this, 0, sizeof(Node));
+	}
+	type* getClassDataPointer(void)
+	{ 
+		if (this)
+		{
+			return &NodeData;
+		}
+		return nullptr;
+	};
+	type& getData(void) { return NodeData; };
+	Node* getFirst(void)
+	{
+		Node* Checker = this;
+		do {
+			//First case (best case): The linked list is NON-CIRCULAR, therefore, the FIRST entry is the one that DOES NOT have a PREVIOUS value
+			if (!(Checker->getPrevious()))	//If Checker's previous is nullptr (NULL), then that is the value we are searching, return it
+			{
+				return Checker;
+			}
+			Checker = Checker->getPrevious();
+		} while (Checker != this);	//Doesn't need to reset Checker to 'this', since by the do-while condition, if it escape the loop, then it's already 'this'
+		//Second case (Worst case): The linked list is DOUBLE-CIRCULAR, therefore, we cannot define a last entry automatically
+		return nullptr;
+	}
+	Node* getLast(void)
+	{
+		Node* Checker = this;
+		do {
+			//First case (best case): The linked list is NON-CIRCULAR, therefore, the LAST entry is the one that DOES NOT have a NEXT value
+			if (!(Checker->getNext()))	//If Checker's next is nullptr (NULL), then that is the value we are searching, return it
+			{
+				return Checker;
+			}
+			//Second case: The linked list is SINGLE-CIRCULAR, therefore, the LAST entry is the one BEFORE the entry that DOES NOT have a PREVIOUS value (root node)
+			else if (!(Checker->getNext()->getPrevious()))	//Check if Checker's next node doesn't have a previous, since we just check for the previous, we cannot return the last node (since we cannot go back)
+			{
+				return Checker;
+			}
+			Checker = Checker->getNext();
+		} while (Checker != this);	//Doesn't need to reset Checker to 'this', since by the do-while condition, if it escape the loop, then it's already 'this'
+		//Third case (Worst case): The linked list is DOUBLE-CIRCULAR, therefore, we cannot define a last entry automatically
+		return nullptr;
+	}
+	Node* getNext(void) { return Next; };
+	Node* getNode(uint32 Index)
+	{
+		if (Index) //If the index is != 0, search the data. If it's 0, just return 'this'
+		{
+			Node* Checker = this;
+			while (Index)
+			{
+				Checker = Checker->getNext();
+				Index--;
+			}
+			if (Checker != nullptr)	//If 'Checker' isn't null, then it's a valid node. Return it
+			{
+				return Checker;
+			}
+			return nullptr;	//If 'Checker' is null, then it isn't a valid node. Return null;
+		}
+		return this;
+	}
+	Node* getPrevious(void) { return Prev; };
+	Node* getThisNode(void) { return this; };
+	void resetPointers(void)
+	{
+		this->Next = nullptr;
+		this->Prev = nullptr;
+	}
+	//Returns pointer to a new[] memory. !! REMEMBER TO CALL DELETE[] ON THIS POINTER AFTERWARDS !!
+	type* returnChainAsNewArray(void)
+	{
+		uint32 Size = countChainLengthFrom(this);
+		if (Size)
+		{
+			type* Temp = new type[Size];
+			Node* TempChecker = this;
+			for (int i = 0; i < Size; i++)
+			{
+				Temp[i] = TempChecker->getData();
+				TempChecker = TempChecker->getNext();
+			}
+			return Temp;
+		}
+		return nullptr;
+	}
+	//Returns pointer to a new[] memory. !! REMEMBER TO CALL DELETE[] ON THIS POINTER AFTERWARDS !!
+	type* returnChainAsNewArray(Node* StartNode, ArrayConversionDirection Direction)
+	{
+		uint32 Size = countChainLengthFrom(StartNode);
+		if (Size)
+		{
+			type* Temp = new type[Size];
+			Node* TempChecker = StartNode;
+			if (Direction)	//Reading towards previous values
+			{
+				for (int i = 0; i < Size; i++)
+				{
+					Temp[i] = TempChecker->getData();
+					TempChecker = TempChecker->getPrevious();
+				}
+				return Temp;
+			}
+			//Reading towards next values
+			for (int i = 0; i < Size; i++)
+			{
+				Temp[i] = TempChecker->getData();
+				TempChecker = TempChecker->getNext();
+			}
+			return Temp;
+		}
+		return nullptr;
+	}
+	//Returns pointer to a new[] memory. !! REMEMBER TO CALL DELETE[] ON THIS POINTER AFTERWARDS !!
+	type* returnChainAsNewArray(Node* StartNode, Node* EndNode)
+	{
+		uint32 Size = countChainLengthBetween(StartNode, EndNode);
+		if (Size)
+		{
+			type* Temp = new type[Size];
+			Node* TempChecker = StartNode;
+			for (int i = 0; i < Size; i++)
+			{
+				Temp[i] = TempChecker->getData();
+				TempChecker = TempChecker->getNext();
+			}
+			return Temp;
+		}
+		return nullptr;	//Size was 0, therefore, the chain is null (or don't have length, which is almost the same)
+	}
+	void setData(type& Data) { NodeData = Data; };
+	void setNext(Node* NextNode)
+	{
+		Next = NextNode;
+	#ifdef NODE_DEBUG
+		std::cout << "[NEXT] Node at : [" << this << "] -> [" << Next << "]\n";
+	#endif
+	}
+	void setPrevious(Node* PreviousNode)
+	{
+		Prev = PreviousNode;
+	#ifdef NODE_DEBUG
+		std::cout << "[PREV] Node at : [" << this << "] <- [" << Prev << "]\n";
+	#endif
+	}
+
+	//Desconstructors and destroyers
+	Node* removeThisNode(void)
+	{
+		if (this->getPrevious())	//If we have a previous node, update it
+		{
+			//Making the node before 'TargetNode' Next's points to 'TargetNode' actual Next
+			this->getPrevious()->setNext(this->getNext());
+		}
+		if (this->getNext())
+		{
+			//Making the node after 'TargetNode' Prev's points to 'TargetNode' actual previous
+			this->getNext()->setPrevious(this->getPrevious());
+		}
+		this->clearData();
+		//Nullifies 'TargetNode''s Next and Prev, to prevent deleting the whole chain when destroying this node
+		this->resetPointers();
+		delete this;
+		return nullptr;
+	}
+	//Destroy whole chain (including 'this' node, so REMEBER to point 'this' node to nullptr)
+	void destroyChain(void)
+	{
+		if (this->getPrevious() != nullptr)
+		{
+			this->getPrevious()->setNext(nullptr);
+		}
+		delete this;
+	}
+	~Node()
+	{
+		if (this != nullptr)
+		{
+			if (this->getNext() != nullptr)
+			{
+#ifdef NODE_DTOR_DELETE
+				clearData();
+#endif
+				delete this->getNext();
+			}
+		}
+	#ifdef NODE_DEBUG
+		std::cout << "[DSTR] Node at : [" << this << "]\n";
+	#endif
+	}
+
+	//Static functions
+	static uint32 countChainLengthFrom(const Node* StartNode)
+	{
+		uint32 Size = 0;
+		const Node* Checker = StartNode;
+		if (StartNode == nullptr)	//Null node sent, therefore, the chain is null (0)
+		{
+			return 0;
+		}
+		else
+		{
+			do {
+				Checker = Checker->Next;
+				if (Checker == nullptr)
+				{
+					break;
+				}
+				Size++;
+			} while ((Checker != StartNode));	//Protection against null nodes and circular linked lists
+			return Size;
+		}
+	}
+	static uint32 countChainLengthBetween(const Node* StartNode, const Node* EndNode)
+	{
+		uint32 Size = 0;
+		const Node* Checker = StartNode;
+		if (StartNode == nullptr)
+		{
+			return 0;
+		}
+		else
+		{
+			do {
+				Checker = Checker->Next;
+				if (Checker == nullptr)
+				{
+					break;
+				}
+				Size++;
+			} while ((Checker != EndNode) && (Checker != StartNode));
+			return Size;
+		}
+	}
+	static void destroyChainFrom(Node* TargetNode)
+	{
+		delete TargetNode;
+		TargetNode->Next = nullptr;
+		TargetNode->Prev = nullptr;
+	}
+	static Node* getXNext(Node* StarterNode, uint32 Depth)
+	{
+		while (Depth)
+		{
+			StarterNode = StarterNode->Next;
+			//Outside list range! Return nullptr
+			if (StarterNode == nullptr)
+			{
+				return nullptr;
+			}
+			Depth--;
+		}
+		return StarterNode;
+	}
+	static Node* getXPrevious(Node* StarterNode, uint32 Depth)
+	{
+		while (Depth)
+		{
+			StarterNode = StarterNode->Prev;
+			if (StarterNode == nullptr)
+			{
+				return nullptr;
+			}
+			Depth--;
+		}
+		return StarterNode;
+	}
+	static Node* getFirstFromChain(Node* StarterNode)
+	{
+		Node* Start = StarterNode;
+		do {
+			if (!(StarterNode->getPrevious()))
+			{
+				return StarterNode;
+			}
+			StarterNode = StarterNode->getPrevious();
+		} while (StarterNode != Start);
+		return nullptr;
+	}
+	static Node* getLastFromChain(Node* StarterNode)
+	{
+		Node* Start = StarterNode;
+		do {
+			if (!(StarterNode->getNext()))
+			{
+				return StarterNode;
+			}
+			else if (!(StarterNode->getNext()->getPrevious()))
+			{
+				return StarterNode;
+			}
+			StarterNode = StarterNode->getNext();
+		} while (StarterNode != Start);
+		return nullptr;
+	}
+	static void removeNode(Node* TargetNode)
+	{
+		if (TargetNode->getPrevious())
+		{
+			//Making the node before TargetNode Next's points to TargetNode actual Next
+			TargetNode->getPrevious()->setNext(TargetNode->getNext());
+		}
+		if (TargetNode->getNext())
+		{
+			//Making the node after TargetNode Prev's points to TargetNode actual previous
+			TargetNode->getNext()->setPrevious(TargetNode->getPrevious());
+		}
+		//Nullifies TargetNode's Next and Prev, to prevent deleting the whole chain when destroying this node
+		TargetNode->resetPointers();
+		delete TargetNode;
+		TargetNode = nullptr;
+	}
+};
+
+template <class type>
+//Same as a simple 'Node', but the data stored is a "Pointer to Data" instead of simply "Data"
+//Since it "Points to" data, the destructor will NOT destroy the Data pointed by 'NodeData'. If you wish to delete it, use 'deleteThisNode()' OR 'deleteThisNodeArray()'
+class NodePointed
+{
+protected:
+	type 		*NodeData;	//Pointer to Data
+	NodePointed *Next;		//Pointer to the next node
+	NodePointed *Prev;		//Pointer to the previous node
+
+public:
+	NodePointed()
+	{
+		Next = nullptr;
+		Prev = nullptr;
+		NodeData = nullptr;
+#ifdef NODE_DEBUG	
+		std::cout << "[BULD] NodePointed at : [" << this << "]\n";
+#endif	
+	}
+	NodePointed(type In)
+	{
+		NodeData = In;
+		Next = nullptr;
+		Prev = nullptr;
+#ifdef NODE_DEBUG	
+		std::cout << "[BULD] Node at : [" << this << "] with value of [" << this->NodeData << "]\n";
+#endif	
+	}
+
+	NodePointed* addNode(NodePointed* RootNode)
+	{
+		NodePointed* Checker = RootNode;
+		//Search for the nearest node that DON'T HAVE A NEXT POINTER
+		while (Checker->getNext() != nullptr)
+		{
+			Checker = Checker->getNext();
+			//Protection against circular linked list
+			if (Checker == RootNode)
+			{
+				return nullptr;
+			}
+		}
+		Checker->setNext(new NodePointed<type>);
+		if (Checker->getNext() == nullptr)
+		{
+			//Allocation failed!
+			return nullptr;
+		}
+		Checker->getNext()->setPrevious(Checker);
+		return Checker->getNext();
+	}
+	NodePointed* addNode(NodePointed* RootNode, type& Data)
+	{
+		NodePointed* Checker = RootNode;
+		//Search for the nearest node that DON'T HAVE A NEXT POINTER
+		while (Checker->getNext() != nullptr)
+		{
+			Checker = Checker->getNext();
+			//Protection against circular linked list
+			if (Checker == RootNode)
+			{
+				return nullptr;
+			}
+		}
+		Checker->setNext(new NodePointed<type>);
+		if (Checker->getNext() == nullptr)
+		{
+			//Allocation failed!
+			return nullptr;
+		}
+		Checker->getNext()->setPrevious(Checker);
+		Checker->getNext()->setData(Data);
+		return Checker->getNext();
+	}	//Try generalizing parameter as a reference, to prevent object construction (TODO: PERFOMANCE)
+	NodePointed* addNodeAfterOf(NodePointed* TargetNode)
+	{
+		//Preventing adding a node after TargetNode, if it was already created (this->Next is NOT nullptr)
+		if (TargetNode->getNext() != nullptr)
+		{
+			return this;
+		}
+		else if (TargetNode == nullptr)
+		{
+			return nullptr;
+		}
+		NodePointed* Temp = new NodePointed<type>;
+		if (Temp == nullptr)
+		{
+			return nullptr;
+		}
+		TargetNode->setNext(Temp);
+		Temp->setPrevious(TargetNode);
+		TargetNode = Temp;
+		return Temp;
+	}
+	NodePointed* addNodeAfterOf(NodePointed* TargetNode, type& Data)
+	{
+		//Preventing adding a node after TargetNode, if it was already created (this->Next is NOT nullptr)
+		if (TargetNode->getNext() != nullptr)
+		{
+			return this;
+		}
+		else if (TargetNode == nullptr)
+		{
+			return nullptr;
+		}
+		NodePointed* Temp = new NodePointed<type>;
+		if (Temp == nullptr)
+		{
+			return nullptr;
+		}
+		TargetNode->setNext(Temp);
+		Temp->setPrevious(TargetNode);
+		TargetNode = Temp;
+		Temp->setData(Data);
+		return Temp;
+	}
+	NodePointed* addNodeBetweenOf(NodePointed* AfterThisNode, NodePointed* BeforeThatNode)
+	{
+		if (AfterThisNode == nullptr || BeforeThatNode == nullptr)
+		{
+			return nullptr;
+		}
+		NodePointed* Temp = new NodePointed<type>;
+		if (Temp == nullptr)
+		{
+			return nullptr;
+		}
+		AfterThisNode->setNext(Temp);
+		BeforeThatNode->setNext(Temp->getNext());
+		BeforeThatNode->setPrevious(Temp);
+		Temp->setNext(BeforeThatNode);
+		Temp->setPrevious(AfterThisNode);
+		return Temp;
+	}
+	NodePointed* addNodeBetweenOf(NodePointed* AfterThisNode, NodePointed* BeforeThatNode, type& Data)
+	{
+		if (AfterThisNode == nullptr || BeforeThatNode == nullptr)
+		{
+			return nullptr;
+		}
+		NodePointed* Temp = new NodePointed<type>;
+		if (Temp == nullptr)
+		{
+			return nullptr;
+		}
+		AfterThisNode->setNext(Temp);
+		BeforeThatNode->setNext(Temp->getNext());
+		BeforeThatNode->setPrevious(Temp);
+		Temp->setNext(BeforeThatNode);
+		Temp->setPrevious(AfterThisNode);
+		Temp->setData(Data);
+		return Temp;
+	}
+	type* getClassDataPointer(void)
+	{
+		if (this)
+		{
+			return NodeData;
+		}
+		return nullptr;
+	};
+	type& getData(void) { return *NodeData; };
+	NodePointed* getFirst(void)
+	{
+		NodePointed* Checker = this;
+		do {
+			//First case (best case): The linked list is NON-CIRCULAR, therefore, the FIRST entry is the one that DOES NOT have a PREVIOUS value
+			if (!(Checker->getPrevious()))	//If Checker's previous is nullptr (NULL), then that is the value we are searching, return it
+			{
+				return Checker;
+			}
+			Checker = Checker->getPrevious();
+		} while (Checker != this);	//Doesn't need to reset Checker to 'this', since by the do-while condition, if it escape the loop, then it's already 'this'
+		//Second case (Worst case): The linked list is DOUBLE-CIRCULAR, therefore, we cannot define a last entry automatically
+		return nullptr;
+	}
+	NodePointed* getLast(void)
+	{
+		NodePointed* Checker = this;
+		do {
+			//First case (best case): The linked list is NON-CIRCULAR, therefore, the LAST entry is the one that DOES NOT have a NEXT value
+			if (!(Checker->getNext()))	//If Checker's next is nullptr (NULL), then that is the value we are searching, return it
+			{
+				return Checker;
+			}
+			//Second case: The linked list is SINGLE-CIRCULAR, therefore, the LAST entry is the one BEFORE the entry that DOES NOT have a PREVIOUS value (root node)
+			else if (!(Checker->getNext()->getPrevious()))	//Check if Checker's next node doesn't have a previous, since we just check for the previous, we cannot return the last node (since we cannot go back)
+			{
+				return Checker;
+			}
+			Checker = Checker->getNext();
+		} while (Checker != this);	//Doesn't need to reset Checker to 'this', since by the do-while condition, if it escape the loop, then it's already 'this'
+		//Third case (Worst case): The linked list is DOUBLE-CIRCULAR, therefore, we cannot define a last entry automatically
+		return nullptr;
+	}
+	NodePointed* getNext(void)
+	{
+		if (this)
+		{
+			return Next;
+		}
+		return nullptr;
+
+	};
+	NodePointed* getNode(uint32 Index)
+	{
+		if (Index) //If the index is != 0, search the data. If it's 0, just return 'this'
+		{
+			NodePointed* Checker = this;
+			while (Index)
+			{
+				Checker = Checker->getNext();
+				Index--;
+			}
+			if (Checker != nullptr)	//If 'Checker' isn't null, then it's a valid node. Return it
+			{
+				return Checker;
+			}
+			return nullptr;	//If 'Checker' is null, then it isn't a valid node. Return null;
+		}
+		return this;
+	}
+	NodePointed* getPrevious(void)
+	{
+		if (this)
+		{
+			return Prev;
+		}
+		return nullptr;
+	};
+	NodePointed* getThisNode(void) { return this; };
+	void resetPointers(void)
+	{
+		this->Next = nullptr;
+		this->Prev = nullptr;
+	}
+	//Returns pointer to a new[] memory. !! REMEMBER TO CALL DELETE[] ON THIS POINTER AFTERWARDS !!
+	type* returnChainAsNewArray(void)
+	{
+		uint32 Size = countChainLengthFrom(this);
+		if (Size)
+		{
+			type* Temp = new type[Size];
+			NodePointed* TempChecker = this;
+			for (int i = 0; i < Size; i++)
+			{
+				Temp[i] = TempChecker->getData();
+				TempChecker = TempChecker->getNext();
+			}
+			return Temp;
+		}
+		return nullptr;
+	}
+	//Returns pointer to a new[] memory. !! REMEMBER TO CALL DELETE[] ON THIS POINTER AFTERWARDS !!
+	type* returnChainAsNewArray(NodePointed* StartNode, ArrayConversionDirection Direction)
+	{
+		uint32 Size = countChainLengthFrom(StartNode);
+		if (Size)
+		{
+			type* Temp = new type[Size];
+			NodePointed* TempChecker = StartNode;
+			if (Direction)	//Reading towards previous values
+			{
+				for (int i = 0; i < Size; i++)
+				{
+					Temp[i] = TempChecker->getData();
+					TempChecker = TempChecker->getPrevious();
+				}
+				return Temp;
+			}
+			//Reading towards next values
+			for (int i = 0; i < Size; i++)
+			{
+				Temp[i] = TempChecker->getData();
+				TempChecker = TempChecker->getNext();
+			}
+			return Temp;
+		}
+		return nullptr;
+	}
+	//Returns pointer to a new[] memory. !! REMEMBER TO CALL DELETE[] ON THIS POINTER AFTERWARDS !!
+	type* returnChainAsNewArray(NodePointed* StartNode, NodePointed* EndNode)
+	{
+		uint32 Size = countChainLengthBetween(StartNode, EndNode);
+		if (Size)
+		{
+			type* Temp = new type[Size];
+			NodePointed* TempChecker = StartNode;
+			for (int i = 0; i < Size; i++)
+			{
+				Temp[i] = TempChecker->getData();
+				TempChecker = TempChecker->getNext();
+			}
+			return Temp;
+		}
+		return nullptr;	//Size was 0, therefore, the chain is null (or don't have length, which is almost the same)
+	}
+	void setData(type& Data) 
+	{
+		if (this)
+		{
+			NodeData = &Data;
+		}
+	};
+	void setNext(NodePointed* NextNode)
+	{
+		Next = NextNode;
+#ifdef NODE_DEBUG
+		std::cout << "[NEXT] NodePointed at : [" << this << "] -> [" << Next << "]\n";
+#endif
+	}
+	void setPrevious(NodePointed* PreviousNode)
+	{
+		Prev = PreviousNode;
+#ifdef NODE_DEBUG
+		std::cout << "[PREV] NodePointed at : [" << this << "] <- [" << Prev << "]\n";
+#endif
+	}
+
+	//Desconstructors and destroyers
+	NodePointed* removeThisNode(void)
+	{
+		if (this->getPrevious())	//If we have a previous node, update it
+		{
+			//Making the node before 'TargetNode' Next's points to 'TargetNode' actual Next
+			this->getPrevious()->setNext(this->getNext());
+		}
+		if (this->getNext())
+		{
+			//Making the node after 'TargetNode' Prev's points to 'TargetNode' actual previous
+			this->getNext()->setPrevious(this->getPrevious());
+		}
+		//Nullifies 'TargetNode''s Next, to prevent deleting the whole chain when destroying this node
+		this->setNext(nullptr);
+		delete this;
+		return nullptr;
+	}
+	//Attempts to delete this Node AND the Data pointed by 'NodeData'
+	NodePointed* deleteThisNode(void)
+	{
+#ifndef NODE_DTOR_DELETE
+		delete NodeData;
+		NodeData = nullptr;
+#endif
+		return removeThisNode();
+	}
+	//Attempts to delete[] this Node AND the Data pointed by 'NodeData'
+	NodePointed* deleteThisNodeArray(void)
+	{
+#ifndef NODE_DTOR_DELETE
+		delete[] NodeData;
+		NodeData = nullptr;
+#endif
+		return removeThisNode();
+	}
+	NodePointed* deleteThisChain(void)
+	{
+		NodePointed* Checker = this;
+		NodePointed* NextNode = this;
+		while (Checker)
+		{
+			NextNode = Checker->getNext();
+			if (!NextNode)
+			{
+				break;
+			}
+			if (Checker->getPrevious())	//If we have a previous node, update it
+			{
+				//Making the node before 'TargetNode' Next's points to 'TargetNode' actual Next
+				Checker->getPrevious()->setNext(Checker->getNext());
+			}
+			if (Checker->getNext())
+			{
+				//Making the node after 'TargetNode' Prev's points to 'TargetNode' actual previous
+				Checker->getNext()->setPrevious(Checker->getPrevious());
+			}
+			//Nullifies 'TargetNode''s Next and Prev, to prevent deleting the whole chain when destroying this node
+			Checker->resetPointers();
+			delete Checker->NodeData;
+			Checker->NodeData = nullptr;
+			delete Checker;
+			Checker = NextNode;
+		}
+		return nullptr;
+	}
+	NodePointed* deleteThisChainArray(void)
+	{
+		NodePointed* Checker = this;
+		while (Checker)
+		{
+			delete[] NodeData;
+			removeThisNode();
+		}
+		return nullptr;
+	}
+	//Destroy whole chain (including 'this' node, so REMEBER to point 'this' node to nullptr)
+	void destroyChain(void)
+	{
+		if (this->getPrevious() != nullptr)
+		{
+			this->getPrevious()->setNext(nullptr);
+		}
+		delete this;
+	}
+	~NodePointed()
+	{
+		if (this->getNext())
+		{
+#ifdef NODE_DTOR_DELETE
+			delete NodeData;
+			NodeData = nullptr;
+#endif
+			delete this->getNext();
+		}
+#ifdef NODE_DEBUG
+		std::cout << "[DSTR] NodePointed at : [" << this << "]\n";
+#endif
+	}
+
+	//Static functions
+	static uint32 countChainLengthFrom(const NodePointed* StartNode)
+	{
+		uint32 Size = 0;
+		const NodePointed* Checker = StartNode;
+		if (StartNode == nullptr)	//Null node sent, therefore, the chain is null (0)
+		{
+			return 0;
+		}
+		else
+		{
+			do {
+				Checker = Checker->Next;
+				if (Checker == nullptr)
+				{
+					break;
+				}
+				Size++;
+			} while ((Checker != StartNode));	//Protection against null nodes and circular linked lists
+			return Size;
+		}
+	}
+	static uint32 countChainLengthBetween(const NodePointed* StartNode, const NodePointed* EndNode)
+	{
+		uint32 Size = 0;
+		const NodePointed* Checker = StartNode;
+		if (StartNode == nullptr)
+		{
+			return 0;
+		}
+		else
+		{
+			do {
+				Checker = Checker->Next;
+				if (Checker == nullptr)
+				{
+					break;
+				}
+				Size++;
+			} while ((Checker != EndNode) && (Checker != StartNode));
+			return Size;
+		}
+	}
+	static void destroyChainFrom(NodePointed* TargetNode)
+	{
+		delete TargetNode;
+		TargetNode->Next = nullptr;
+		TargetNode->Prev = nullptr;
+	}
+	static NodePointed* getXNext(NodePointed* StarterNode, uint32 Depth)
+	{
+		while (Depth)
+		{
+			StarterNode = StarterNode->Next;
+			//Outside list range! Return nullptr
+			if (StarterNode == nullptr)
+			{
+				return nullptr;
+			}
+			Depth--;
+		}
+		return StarterNode;
+	}
+	static NodePointed* getXPrevious(NodePointed* StarterNode, uint32 Depth)
+	{
+		while (Depth)
+		{
+			StarterNode = StarterNode->Prev;
+			if (StarterNode == nullptr)
+			{
+				return nullptr;
+			}
+			Depth--;
+		}
+		return StarterNode;
+	}
+	static NodePointed* getFirstFromChain(NodePointed* StarterNode)
+	{
+		NodePointed* Start = StarterNode;
+		do {
+			if (!(StarterNode->getPrevious()))
+			{
+				return StarterNode;
+			}
+			StarterNode = StarterNode->getPrevious();
+		} while (StarterNode != Start);
+		return nullptr;
+	}
+	static NodePointed* getLastFromChain(NodePointed* StarterNode)
+	{
+		NodePointed* Start = StarterNode;
+		do {
+			if (!(StarterNode->getNext()))
+			{
+				return StarterNode;
+			}
+			else if (!(StarterNode->getNext()->getPrevious()))
+			{
+				return StarterNode;
+			}
+			StarterNode = StarterNode->getNext();
+		} while (StarterNode != Start);
+		return nullptr;
+	}
+	static void removeNode(NodePointed* TargetNode)
+	{
+		if (TargetNode->getPrevious())
+		{
+			//Making the node before TargetNode Next's points to TargetNode actual Next
+			TargetNode->getPrevious()->setNext(TargetNode->getNext());
+		}
+		if (TargetNode->getNext())
+		{
+			//Making the node after TargetNode Prev's points to TargetNode actual previous
+			TargetNode->getNext()->setPrevious(TargetNode->getPrevious());
+		}
+		//Nullifies TargetNode's Next and Prev, to prevent deleting the whole chain when destroying this node
+		TargetNode->resetPointers();
+		delete TargetNode;
+		TargetNode = nullptr;
+	}
+};
+
+template <class type>
+class ListManager
+{
+protected:
+	Node<type> *Head;
+	Node<type> *Tail;
+	uint32 Length = 0;
+
+	void rebuildList(void)
+	{
+		if (Length <= 1)
+		{
+			delete Head;
+		}
+		else
+		{
+			delete this;
+		}
+		Head = new Node<type>;
+		Tail = Head;
+		Length = 0;
+	}
+
+public:
+	ListManager() : Head(new Node<type>)
+	{
+		Tail = Head;
+	}
+	ListManager(type In) : Head(new Node<type>(In))
+	{
+		Tail = Head;
+	}
+	~ListManager()
+	{
+		Node<type> *Checker = Head;
+		while (Head)
+		{
+			Checker = Head->getNext();
+			Head->removeThisNode();
+			Head = Checker;
+		}
+	}
+
+	void addData(type& Data)
+	{
+		Tail->setData(Data);
+		Tail = Tail->addNodeAfterOf(Tail);
+		Length++;
+	}
+	void addData(type* Data)
+	{
+		Tail->setData(*Data);
+		Tail = Tail->addNodeAfterOf(Tail);
+		Length++;
+	}
+	bool contains(Node<type>* Target)
+	{
+		Node<type> *FinderFront = Head;
+		Node<type> *FinderBack = Tail;
+		do {
+			if (FinderFront == Target)		//Found our target, and it is inside this list! Return true
+			{
+				return true;
+			}
+			else if (FinderFront == Tail)	//Front Finder hit the tail of the list. This means we DON'T FOUND our target, return false
+			{
+				return false;
+			}
+			else							//Still searching...
+			{
+				FinderFront = FinderFront->getNext();
+			}
+			if (FinderBack == Target)
+			{
+				return true;
+			}
+			else if (FinderBack == Head)
+			{
+				return false;
+			}
+			else
+			{
+				FinderBack = FinderBack->getPrevious();
+			}
+		} while (FinderFront != FinderBack);
+		return false;
+	}
+	Node<type>* find(type& Data)
+	{
+		Node<type>* TempF = Head;
+		Node<type>* TempB = Tail;
+		do
+		{
+			if (TempF->getData() == Data)	//Found our target, and it is inside this list! Return true
+			{
+				return TempF;
+			}
+			else if (TempF == Tail)			//Front Finder hit the tail of the list. This means we DON'T FOUND our target, return false
+			{
+				return nullptr;
+			}
+			else							//Still searching...
+			{
+				TempF = TempF->getNext();
+			}
+			if (TempB->getData() == Data)
+			{
+				return TempF;
+			}
+			else if (TempB == Head)
+			{
+				return nullptr;
+			}
+			else
+			{
+				TempB = TempB->getPrevious();
+			}
+		} while (TempF != TempB);
+		return nullptr;
+	}
+	Node<type>* getTail(void)
+	{
+		return Tail->getPrevious();
+	}
+	Node<type>* getHead(void)
+	{
+		return Head;
+	}
+	type getData(int index)
+	{
+		return Head->getNode(index)->getData();
+	}
+	uint32 getLength(void)
+	{
+		return Length;
+	}
+	void printAllData(char SeparatorStart, char SeparatorEnd)
+	{
+		Node<type> *Temp = Head;
+		while (Temp != Tail)
+		{
+			std::cout << SeparatorStart << Temp->getData() << SeparatorEnd;
+			Temp = Temp->getNext();
+		}
+		std::cout << std::endl;
+	}
+	void removeNode(uint32 Depth)
+	{
+		Node<type> *Temp = Head->getNode(Depth);
+		if (Temp)
+		{
+			if (Temp == Head && Length <= 1)
+			{
+				rebuildList();
+			}
+			else
+			{
+				Temp->removeThisNode();
+				Length--;
+			}
+		}
+	}
+	void removeNode(Node<type>* Target)
+	{
+		if (contains(Target))
+		{
+			if (Target == Head)
+			{
+				rebuildList();
+			}
+			else
+			{
+				Node<type>::removeNode(Target);
+				Length--;
+			}
+		}
+	}
+	void removeNodeSure(Node<type>* Target)	// !! WARNING !! ONLY use this method if you supply as parameter a value from a method that searches this list (such as 'find()')
+	{
+		if (Target == Head)
+		{
+			Node<type> Temp = *Head;
+			Head = new Node<type>;
+			Head->setNext(Temp.getNext());
+			Head->setPrevious(Temp.getPrevious());
+		}
+		Node<type>::removeNode(Target);
+		Length--;
+	}
+
+	void destroyList(void)
+	{
+		delete this;
+	}
+};
+
+template <class type>
+class ListPointedManager
+{
+protected:
+	NodePointed<type> *Head;
+	NodePointed<type> *Tail;
+	uint32 Length = 0;
+
+public:
+	ListPointedManager() : Head(new NodePointed<type>) 
+	{
+		Tail = Head;
+	}
+	ListPointedManager(type In) : Head(new NodePointed<type>(In))
+	{
+		Tail = Head;
+	}
+	~ListPointedManager()
+	{
+		NodePointed<type> *Checker = Head;
+		while (Head)
+		{
+			Checker = Head->getNext();
+			Head->deleteThisNode();
+			Head = Checker;
+		}
+	}
+
+	void addData(type& Data)
+	{
+		Tail->setData(Data);
+		Tail = Tail->addNodeAfterOf(Tail);
+		Length++;
+	}
+	void addData(type* Data)
+	{
+		Tail->setData(*Data);
+		Tail = Tail->addNodeAfterOf(Tail);
+		Length++;
+	}
+	bool contains(NodePointed<type>* Target)
+	{
+		NodePointed<type> *FinderFront = Head;
+		NodePointed<type> *FinderBack = Tail;
+		do {
+			if (FinderFront == Target)		//Found our target, and it is inside this list! Return true
+			{
+				return true;
+			}
+			else if (FinderFront == Tail)	//Front Finder hit the tail of the list. This means we DON'T FOUND our target, return false
+			{
+				return false;
+			}
+			else							//Still searching...
+			{
+				FinderFront = FinderFront->getNext();
+			}
+			if (FinderBack == Target)
+			{
+				return true;
+			}
+			else if (FinderBack == Head)
+			{
+				return false;
+			}
+			else
+			{
+				FinderBack = FinderBack->getPrevious();
+			}
+		} while (FinderFront != FinderBack);
+		return false;
+	}
+	NodePointed<type>* find(type& Data)
+	{
+		NodePointed<type>* TempF = Head;
+		NodePointed<type>* TempB = Tail;
+		do
+		{
+			if (TempF->getData() == Data)		//Found our target, and it is inside this list! Return true
+			{
+				return TempF;
+			}
+			else if (TempF == Tail)		//Front Finder hit the tail of the list. This means we DON'T FOUND our target, return false
+			{
+				return nullptr;
+			}
+			else						//Still searching...
+			{
+				TempF = TempF->getNext();
+			}
+			if (TempB->getData() == Data)
+			{
+				return TempF;
+			}
+			else if (TempB == Head)
+			{
+				return nullptr;
+			}
+			else
+			{
+				TempB = TempB->getPrevious();
+			}
+		} while (TempF != TempB);
+		return nullptr;
+	}
+	NodePointed<type>* getTail(void)
+	{
+		return Tail->getPrevious();
+	}
+	NodePointed<type>* getHead(void)
+	{
+		return Head;
+	}
+	type getData(int index)
+	{
+		return Head->getNode(index)->getData();
+	}
+	uint32 getLength(void)
+	{
+		return Length;
+	}
+	void printAllData(char SeparatorStart, char SeparatorEnd)
+	{
+		NodePointed<type> *Temp = Head;
+		while (Temp != Tail)
+		{
+			std::cout << SeparatorStart << Temp->getData() << SeparatorEnd;
+			Temp = Temp->getNext();
+		}
+		std::cout << std::endl;
+	}
+	void removeNode(uint32 Depth)
+	{
+		NodePointed<type> *Temp = Head->getNode(Depth);
+		if (Temp)
+		{
+			if (Target == Head)
+			{
+				NodePointed<type> Temp2 = *Head;
+				Head = new NodePointed<type>;
+				Head->setNext(Temp2.getNext());
+				Head->setPrevious(Temp2.getPrevious());
+			}
+			Temp->removeThisNode();
+			Length--;
+		}
+	}
+	void removeNode(NodePointed<type>* Target)
+	{
+		if (contains(Target))
+		{
+			if (Target == Head)
+			{
+				NodePointed<type> Temp = *Head;
+				Head = new NodePointed<type>;
+				Head->setNext(Temp.getNext());
+				Head->setPrevious(Temp.getPrevious());
+			}
+			NodePointed<type>::removeNode(Target);
+			Length--;
+		}
+	}
+	void removeNodeSure(NodePointed<type>* Target)	// !! WARNING !! ONLY use this method if you suply as parameter another method that searches this list (such as 'find()')
+	{
+		if (Target == Head)
+		{
+			NodePointed<type> Temp = *Head;
+			Head = new NodePointed<type>;
+			Head->setNext(Temp.getNext());
+			Head->setPrevious(Temp.getPrevious());
+		}
+		NodePointed<type>::removeNode(Target);
+		Length--;
+	}
+
+	void destroyList(void)
+	{
+		ListPointedManager::~ListPointedManager();
+	}
+};
+
+#endif;	//Library Header
