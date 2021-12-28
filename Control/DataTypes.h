@@ -23,6 +23,17 @@
 	#define inTheList(forEachObject, ofTheList) for(auto forEachObject = ofTheList.RetrieveFirst(); forEachObject; forEachObject = forEachObject->getNext())
 	//'Foreach' hack for POINTER list
 	#define inTheListP(forEachObject, ofTheList) for(auto forEachObject = ofTheList->RetrieveFirst(); forEachObject; forEachObject = forEachObject->getNext())
+	//Usage Examples:
+	//
+	//	List<List<int>> Tester;
+	//	inTheList(listJ, Tester)
+	//	{
+	//		inTheListP(integer, listJ->getData())
+	//		{
+	//			printf("[%3d]", *integer->getData());
+	//		}
+	//		printf("\n");
+	//	}
 #endif
 
 enum StackMode
@@ -175,6 +186,18 @@ private:
 public:
 
 	List() : m_Head(nullptr), m_Tail(nullptr), m_Count(0) { };
+	List(T *data)
+	{
+		m_Head = m_Tail = nullptr;
+		m_Count = 0;
+		Add(data);
+	}
+	List(T *data, int size)
+	{
+		m_Head = m_Tail = nullptr;
+		m_Count = 0;
+		Add(data, size);
+	}
 	~List()
 	{
 		Destroy();
@@ -470,6 +493,16 @@ public:
 		}
 		return nullptr;
 	}
+	//Add 'size' items at the specified index. If index is out of bounds, 'data' will be added to the tail instead.
+	//Assuming 'Data' is an array. This method copies and allocated data instead of just saving the pointer
+	Node<T>* AddCopyAt(T *Data, unsigned int size)
+	{
+		for(int i = 0; i < size; i++)
+		{
+			Add(new T(Data[i]));
+		}
+		return m_Tail;
+	}
 	//Add an item to the tail of the list
 	Node<T>* Add(T *Data)
 	{
@@ -495,6 +528,15 @@ public:
 		for (int i = 0; i < size; i++)
 		{
 			Add(&Data[i]);
+		}
+		return m_Tail;
+	}
+	//Add 'size' items to the tail of the  list, assuming 'Data' is an array. This method copies and allocated data instead of just saving the pointer
+	Node<T>* AddCopy(T *Data, unsigned int size)
+	{
+		for(int i = 0; i < size; i++)
+		{
+			Add(new T(Data[i]));
 		}
 		return m_Tail;
 	}
@@ -526,6 +568,15 @@ public:
 			AddFront(&Data[i]);
 		}
 		return m_Head;
+	}
+	//Add 'size' items to the head of the  list, assuming 'Data' is an array. This method copies and allocated data instead of just saving the pointer
+	Node<T>* AddCopyFront(T *Data, unsigned int size)
+	{
+		for(int i = 0; i < size; i++)
+		{
+			AddFront(new T(Data[i]));
+		}
+		return m_Tail;
 	}
 
 	//"Retrieve" Family
@@ -700,6 +751,19 @@ public:
 	{
 		Destroy();
 	}
+	//Deletes all node elements that don't have nothing in them
+	void ClearEmpty(void)
+	{
+		for(Node<T> *runner = m_Head, *back = nullptr; runner != nullptr; runner = runner->getNext())
+		{
+			if(runner->getData() == nullptr)
+			{
+				back = runner->getPrevious();
+				Delete(runner);
+				runner = back;
+			}
+		}
+	}
 	bool Empty(void)
 	{
 		return !m_Count;
@@ -807,8 +871,13 @@ public:
 		}
 	}
 
+	//Copy all contents to an array T, but keep then in the list as well
 	T* ToArray(void)
 	{
+		if(Empty())
+		{
+			return nullptr;
+		}
 		T *arr = new T[m_Count];
 		Node<T> *reader = m_Head;
 		for(int i = 0; reader; i++)
@@ -818,7 +887,21 @@ public:
 		}
 		return arr;
 	}
-
+	//Copy all contents to an array T and then RELEASE all of the list contents
+	T* ToArrayTransfer(void)
+	{
+		if(Empty())
+		{
+			return nullptr;
+		}
+		T *arr = new T[m_Count]();
+		for(int i = 0; m_Count > 0; i++)
+		{
+			arr[i] = *m_Head->getData();
+			ReleaseFirst();
+		}
+		return arr;
+	}
 	//Enabling the [] operator to be used in this List configuration
 	/*T& operator[](unsigned int index)
 	{
@@ -1582,6 +1665,7 @@ public:
 	void print(void)
 	{
 		char *buf = new char[m_longest + 1]();
+		printf("* Note: Nodes that contains data have '{!}' before it's key\n");
 		recPrint(buf, 0);
 		delete[] buf;
 	}
@@ -1672,6 +1756,7 @@ public:
 
 class Automata
 {
+private:
 	//Automata Transition Class
 	//	*Defines a transition between two Automata nodes
 	struct AutomataTransition
@@ -1707,7 +1792,7 @@ class Automata
 			}
 			else
 			{
-				printf("%s\n", m_next->Name());
+				printf("  %s\n", m_next->Name());
 			}
 		}
 #endif
@@ -1776,45 +1861,43 @@ public:
 		return m_isEnd;
 	}
 
-	Automata* Execute(const char *input)
+	bool Accepts(const char *input)
 	{
 		Automata *runner = canTransit(input[0]);		//Transit the first time
 		for (int i = 1; input[i] && runner; i++)		//Suppose 'input' is valid...
 		{
-			
 			runner = runner->canTransit(input[i]);		//...get the next node we can transit trough at this step
 		}
-		//If we reached here, we run trough 'input', which means we always had a transtion to make...
-		if (runner == nullptr || !runner->EndNode())
+		//If we reached here, we consumed all 'input', which means we always had a transtion to make...
+		if (runner == nullptr || !runner->EndNode())	//...but if the node we stopped isn't an end node, then 'input' is invalid
 		{
-			return nullptr;
+			return false;
 		}
-		//...and after that, if we reached an 'end' node, then 'input' is valid
-		return runner;
+		return true;
 	}
 
 #ifdef _INC_STDIO
-	Automata* d_Execute(const char *input)
+	bool d_Accepts(const char *input)
 	{
-		Automata *runner = nullptr;
-		for (int i = 0; input[i]; i++)		//Suppose 'input' is valid...
+		Automata *runner = this;
+		for(int i = 0; input[i]; i++)				//Suppose 'input' is valid...
 		{
-			runner = canTransit(input[i]);	//...get the next node we can transit trough at this step
-			if (runner == nullptr)			//If there isn't a valid node, 'input' is NOT valid
+			runner = runner->canTransit(input[i]);	//...get the next node we can transit trough at this step
+			if(runner == nullptr)					//If there isn't a valid node, 'input' is NOT valid
 			{
 				printf("[%4s](R: '%c') -> -NO TRANS.- \n", m_name->getString(), input[i]);
-				return nullptr;
+				return false;
 			}
 			printf("[%4s](R: '%c') -> [%4s]\n", m_name->getString(), input[i], runner->m_name->getString());
 		}
 		//If we reached here, we run trough 'input', which means we always had a transtion to make...
-		if (runner->EndNode())				//...and after that, if we reached an 'end' node, then 'input' is valid
+		if(runner->EndNode())						//...and after that, if we reached an 'end' node, then 'input' is valid
 		{
-			printf("\t\t[ACCEPTED] \n");
-			return runner;
+			printf("\t\t\t\t[ACCEPTED]\n");
+			return true;
 		}
-		printf("\t\t[-FAILED-]\n");
-		return nullptr;
+		printf("\t\t\t\t[-FAILED-]\n");
+		return false;
 	}
 
 	void print(void)
@@ -1823,7 +1906,7 @@ public:
 		printf("%s\n", m_name->getString());
 		while (runner)
 		{
-			printf("\t");
+			printf(" ");
 			runner->getData()->print();
 			runner = runner->getNext();
 		}

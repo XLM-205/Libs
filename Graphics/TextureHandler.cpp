@@ -13,6 +13,7 @@
 *
 *	Version 0.88
 */
+#include <GL/freeglut.h>
 
 #include "ImageLoader.h"
 #include "TextureHandler.h"
@@ -26,6 +27,10 @@ GLuint MWTHLoadTexture(char *Filename)
 {
 	GLuint Texture = 0;
 	ImgLoader Image(Filename);
+	if(!Image.isImageSucess())
+	{
+		return 0;
+	}
 	if (!strcmp(Image.getFileFormat(), MWIL_IS_BMP))		//strcmp return 0 for equal strings, and 0 is boolean false, therefore, !0 = 1 = boolean true
 	{
 		Image.swapRedBlue();
@@ -106,93 +111,93 @@ TextureInfo MWTHInfoLoadTexture(char *Filename)
 	return Info;
 }
 
-GLuint MWTHLoadTextureEx(char *Filename, ThreadController *TGT)
-{
-	GLuint Texture = 0;
-	ImgLoader Image;
-	Image.setThreadControllerPointer(TGT);
-	Image.Load(Filename);
-	if (!strcmp(Image.getFileFormat(), MWIL_IS_BMP))		//strcmp return 0 for equal strings, and 0 is boolean false, therefore, !0 = 1 = boolean true
-	{
-		Image.swapRedBlue();
-		if (Image.haveAlphaCh())
-		{
-			Image.fixBMPAlpha();
-		}
-	}
-
-	//Gera a textura. Paramentros: (quantidade de texturas, memoria que sera salva)
-	glGenTextures(1, &Texture);
-	//Produz a textura, e tambem a chama quando for preciso (nesse caso, esta sendo usado para produzir a textura)
-	glBindTexture(GL_TEXTURE_2D, Texture);
-
-	//Configura a textura. Parametros: (Tipo de textura, nivel de detalhe, numero de componentes de dados, largura, altura, borda, formato das cores, tipo de dados [unsigned byte], dados da imagem)
-	if (Image.haveAlphaCh())
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, Image.getImageWidth(), Image.getImageHeigth(), 0, GL_RGBA, GL_UNSIGNED_BYTE, Image.getImageData());
-	}
-	else
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, Image.getImageWidth(), Image.getImageHeigth(), 0, GL_RGB, GL_UNSIGNED_BYTE, Image.getImageData());
-	}
-
-
-	//Define a filtragem da textura:
-	//Mag -> Imagem maior que a textura | Min -> Imagem menor que a textura
-	//Parametros: (Tipo da textura, tipo de filtro, tipo de filtragem [linear filtering])
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-	Image.unloadImage();
-	return Texture;
-}
-
-TextureInfo MWTHInfoLoadTextureEx(char *Filename, ThreadController *TGT)
-{
-	TextureInfo Info;
-	ImgLoader Image;
-	Image.setThreadControllerPointer(TGT);
-	Image.Load(Filename);
-	if (!strcmp(Image.getFileFormat(), MWIL_IS_BMP))		//strcmp return 0 for equal strings, and 0 is boolean false, therefore, !0 = 1 = boolean true
-	{
-		Image.swapRedBlue();
-		if (Image.haveAlphaCh())
-		{
-			Image.fixBMPAlpha();
-		}
-	}
-
-	//Gera a textura. Paramentros: (quantidade de texturas, memoria que sera salva)
-	glGenTextures(1, &Info.Texture);
-	//Produz a textura, e tambem a chama quando for preciso (nesse caso, esta sendo usado para produzir a textura)
-	glBindTexture(GL_TEXTURE_2D, Info.Texture);
-
-	//Configura a textura. Parametros: (Tipo de textura, nivel de detalhe, numero de componentes de dados, largura, altura, borda, formato das cores, tipo de dados [unsigned byte], dados da imagem)
-	if (Image.haveAlphaCh())
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, Image.getImageWidth(), Image.getImageHeigth(), 0, GL_RGBA, GL_UNSIGNED_BYTE, Image.getImageData());
-	}
-	else
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, Image.getImageWidth(), Image.getImageHeigth(), 0, GL_RGB, GL_UNSIGNED_BYTE, Image.getImageData());
-	}
-
-	//Define a filtragem da textura:
-	//Mag -> Imagem maior que a textura | Min -> Imagem menor que a textura
-	//Parametros: (Tipo da textura, tipo de filtro, tipo de filtragem [linear filtering])
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-	Info.Density = Image.getImageDensity();
-	Info.have_alpha = Image.haveAlphaCh();
-	Info.is_indexed = Image.isIndexed();
-	Info.Width = Image.getImageWidth();
-	Info.Heigth = Image.getImageHeigth();
-	Info.copyFileStateData(Image.getFileStateDataPointer());
-
-	Image.unloadImage();
-	return Info;
-}
+//GLuint MWTHLoadTextureEx(char *Filename, ThreadController *TGT)
+//{
+//	GLuint Texture = 0;
+//	ImgLoader Image;
+//	Image.setThreadControllerPointer(TGT);
+//	Image.Load(Filename);
+//	if (!strcmp(Image.getFileFormat(), MWIL_IS_BMP))		//strcmp return 0 for equal strings, and 0 is boolean false, therefore, !0 = 1 = boolean true
+//	{
+//		Image.swapRedBlue();
+//		if (Image.haveAlphaCh())
+//		{
+//			Image.fixBMPAlpha();
+//		}
+//	}
+//
+//	//Gera a textura. Paramentros: (quantidade de texturas, memoria que sera salva)
+//	glGenTextures(1, &Texture);
+//	//Produz a textura, e tambem a chama quando for preciso (nesse caso, esta sendo usado para produzir a textura)
+//	glBindTexture(GL_TEXTURE_2D, Texture);
+//
+//	//Configura a textura. Parametros: (Tipo de textura, nivel de detalhe, numero de componentes de dados, largura, altura, borda, formato das cores, tipo de dados [unsigned byte], dados da imagem)
+//	if (Image.haveAlphaCh())
+//	{
+//		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, Image.getImageWidth(), Image.getImageHeigth(), 0, GL_RGBA, GL_UNSIGNED_BYTE, Image.getImageData());
+//	}
+//	else
+//	{
+//		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, Image.getImageWidth(), Image.getImageHeigth(), 0, GL_RGB, GL_UNSIGNED_BYTE, Image.getImageData());
+//	}
+//
+//
+//	//Define a filtragem da textura:
+//	//Mag -> Imagem maior que a textura | Min -> Imagem menor que a textura
+//	//Parametros: (Tipo da textura, tipo de filtro, tipo de filtragem [linear filtering])
+//	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+//	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+//
+//	Image.unloadImage();
+//	return Texture;
+//}
+//
+//TextureInfo MWTHInfoLoadTextureEx(char *Filename, ThreadController *TGT)
+//{
+//	TextureInfo Info;
+//	ImgLoader Image;
+//	Image.setThreadControllerPointer(TGT);
+//	Image.Load(Filename);
+//	if (!strcmp(Image.getFileFormat(), MWIL_IS_BMP))		//strcmp return 0 for equal strings, and 0 is boolean false, therefore, !0 = 1 = boolean true
+//	{
+//		Image.swapRedBlue();
+//		if (Image.haveAlphaCh())
+//		{
+//			Image.fixBMPAlpha();
+//		}
+//	}
+//
+//	//Gera a textura. Paramentros: (quantidade de texturas, memoria que sera salva)
+//	glGenTextures(1, &Info.Texture);
+//	//Produz a textura, e tambem a chama quando for preciso (nesse caso, esta sendo usado para produzir a textura)
+//	glBindTexture(GL_TEXTURE_2D, Info.Texture);
+//
+//	//Configura a textura. Parametros: (Tipo de textura, nivel de detalhe, numero de componentes de dados, largura, altura, borda, formato das cores, tipo de dados [unsigned byte], dados da imagem)
+//	if (Image.haveAlphaCh())
+//	{
+//		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, Image.getImageWidth(), Image.getImageHeigth(), 0, GL_RGBA, GL_UNSIGNED_BYTE, Image.getImageData());
+//	}
+//	else
+//	{
+//		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, Image.getImageWidth(), Image.getImageHeigth(), 0, GL_RGB, GL_UNSIGNED_BYTE, Image.getImageData());
+//	}
+//
+//	//Define a filtragem da textura:
+//	//Mag -> Imagem maior que a textura | Min -> Imagem menor que a textura
+//	//Parametros: (Tipo da textura, tipo de filtro, tipo de filtragem [linear filtering])
+//	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+//	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+//
+//	Info.Density = Image.getImageDensity();
+//	Info.have_alpha = Image.haveAlphaCh();
+//	Info.is_indexed = Image.isIndexed();
+//	Info.Width = Image.getImageWidth();
+//	Info.Heigth = Image.getImageHeigth();
+//	Info.copyFileStateData(Image.getFileStateDataPointer());
+//
+//	Image.unloadImage();
+//	return Info;
+//}
 
 #elif _API_DX			//If  it is DirectX, use this instead
 

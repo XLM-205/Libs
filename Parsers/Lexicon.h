@@ -74,6 +74,8 @@ class LexDictionary
 private:
 	BaseString *m_lexDefPath;
 	Trie<LexSymbol> *m_lexDictionary;
+	int m_extraTypesStart;
+	int m_aditionalTypes;
 	int m_extraSymbolsStart;
 	int m_aditionalSymbols;
 	bool m_buildSucess;
@@ -82,7 +84,7 @@ private:
 	void resetDict(void)
 	{
 		deleteAlloc();
-		m_extraSymbolsStart = m_aditionalSymbols = m_buildSucess = 0;
+		m_aditionalTypes = m_extraTypesStart = m_extraSymbolsStart = m_aditionalSymbols = m_buildSucess = 0;
 	}
 
 	//Free memory alocated
@@ -93,7 +95,7 @@ private:
 	}
 
 public:
-	LexDictionary(const char *lexDefinitionFile) : m_buildSucess(false), m_aditionalSymbols(0)
+	LexDictionary(const char *lexDefinitionFile) : m_buildSucess(false), m_aditionalSymbols(0), m_aditionalTypes(0)
 	{
 		Build(lexDefinitionFile);
 	}
@@ -149,6 +151,7 @@ public:
 					}
 				}
 				m_extraSymbolsStart = getSymbol("__RES_VAR_SLOT__")->ID();
+				m_extraTypesStart = getSymbol("__USR_TYPE_SLOT__")->ID();
 				return true;
 			}
 		}
@@ -165,6 +168,14 @@ public:
 		if (getSymbol(symbol) == nullptr)	//Only add if the symbol actually exists
 		{
 			m_lexDictionary->Insert(symbol, new LexSymbol(m_extraSymbolsStart + (++m_aditionalSymbols), symbol, comment));
+		}
+		return getSymbol(symbol);
+	}
+	LexSymbol* AddType(const char *symbol, const char *comment)
+	{
+		if(getSymbol(symbol) == nullptr)	//Only add if the symbol actually exists
+		{
+			m_lexDictionary->Insert(symbol, new LexSymbol(m_extraTypesStart + (++m_aditionalTypes), symbol, comment));
 		}
 		return getSymbol(symbol);
 	}
@@ -186,6 +197,11 @@ public:
 	int getAmountSymbolsAdded(void)
 	{
 		return m_aditionalSymbols;
+	}
+
+	int getAmountTypesAdded(void)
+	{
+		return m_aditionalTypes;
 	}
 
 	bool buildSuccess(void)

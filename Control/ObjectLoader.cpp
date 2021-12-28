@@ -15,11 +15,16 @@
 *	Version 0.8.4
 */
 
+#include <GL\freeglut.h>
 #include "ObjectLoader.h"
-#include "TextureHandler.h"
+#include "..\Graphics\TextureHandler.h"
+#include "..\Control\DataTypes.h"
 #include <string.h>
 #include <stdlib.h>
-#include <GL\glut.h>
+
+#define _CRTDBG_MAP_ALLOC	//For heap corruption
+#include <stdlib.h>
+#include <crtdbg.h>
 
 #define PATTERN_X			1				//Indices reading, pattern X (Only Vertexes)			
 #define PATTERN_X_Y			2				//Indices reading, pattern X/Y (Vertexes and UV)
@@ -72,9 +77,11 @@ void ObjLoaderBoundingBoxColor(uint8 BBColorR, uint8 BBColorG, uint8 BBColorB)
 ObjLoader::ObjLoader(void)
 {
 	OverrideTexturePath[0] = '\0';
-	flstStateWr = MWOL_WR_WARN_NOT_LOADED;
-	flstState = MWOL_WARN_NOT_LOADED;
-	flstStateType = CST_TYPE_WARNING;
+	//flstStateWr = MWOL_WR_WARN_NOT_LOADED;
+	m_state->setString(MWOL_WR_WARN_NOT_LOADED);
+	//flstState = MWOL_WARN_NOT_LOADED;
+	m_stateCode = FileStatus::FS_NONE;
+	//flstStateType = CST_TYPE_WARNING;
 }
 
 ObjLoader::ObjLoader(char *Filename)
@@ -82,7 +89,7 @@ ObjLoader::ObjLoader(char *Filename)
 	OverrideTexturePath[0] = '\0';
 	resetMaxMin();
 	openFile(Filename, "r");
-	if (flstState == MWFS_SUCCESS)
+	if (m_stateCode == FileStatus::FS_SUCCESS)
 	{
 		sprintf(FilePath, "%s", Filename);
 		is_fromFile = true;
@@ -101,7 +108,7 @@ ObjLoader::ObjLoader(char *Filename, char *Texture)
 	TextureOverride = true;
 	resetMaxMin();
 	openFile(Filename, "r");
-	if (flstState == MWFS_SUCCESS)
+	if (m_stateCode == FileStatus::FS_SUCCESS)
 	{
 		sprintf(FilePath, "%s", Filename);
 		is_fromFile = true;
@@ -119,6 +126,16 @@ ObjLoader::~ObjLoader(void)
 	unloadObject();
 }
 
+bool ObjLoader::isPointInsideBB(mwVec3f Point)
+{
+	return Point > ObjBBMin && Point < ObjBBMax;
+}
+
+//bool ObjLoader::isPointInsideBBGroup(mwVec3f Point, uint16 GroupIndex)	TODO
+//{
+//
+//}
+
 void ObjLoader::DrawLoadedObject(uint8 DrawMode, float Scale)
 {
 	uint32 Counter;					//Used only to speed up the simple i + k operation
@@ -128,6 +145,10 @@ void ObjLoader::DrawLoadedObject(uint8 DrawMode, float Scale)
 		if (TextureOverride)
 		{
 			loadTexture(OverrideTexturePath);
+			if(Texture[0] != NULL)	//If not NULL, we successfully loaded a texture
+			{
+				is_textured = true;
+			}
 		}
 		else
 		{
@@ -226,7 +247,7 @@ void ObjLoader::DrawLoadedObject(uint8 DrawMode, float Scale)
 				}
 				if ((Pattern == PATTERN_X_Y_Z || Pattern == PATTERN_X_Y) && is_textured)			//Drawing a textured object. Parsing the UV Coordinates
 				{
-					glTexCoord2f(UVData[UVIndices[i]]._X, UVData[UVIndices[i]]._Y);
+					glTexCoord3f(UVData[UVIndices[i]]._X, UVData[UVIndices[i]]._Y, UVData[UVIndices[i]]._Z);
 				}
 				glVertex3f(VertexData[VertexIndices[i]]._X * Scale, VertexData[VertexIndices[i]]._Y * Scale, VertexData[VertexIndices[i]]._Z * Scale);
 			}
@@ -287,9 +308,17 @@ void ObjLoader::DrawLoadedObject(uint8 DrawMode, float Scale)
 		//TODO: Put material tranformation here (glMaterial)
 		for (int j = 0; j < GroupAmount; j++)
 		{
-			if (is_textured && Groups[j].MaterialID != 0)
+			if(is_textured && Groups[j].MaterialID != 0)
 			{
 				glBindTexture(GL_TEXTURE_2D, Texture[Materials[Groups[j].MaterialID - 1].TextureIndex[0]]);
+				if((LastLoadedMaterial != Materials[Groups[j].MaterialID - 1].ID) && (!TextureOverride))
+				{
+					LastLoadedMaterial = Materials[Groups[j].MaterialID - 1].ID;
+					glMaterialfv(GL_FRONT, GL_AMBIENT, Materials[Groups[j].MaterialID - 1].AmbientMaterial);
+					glMaterialfv(GL_FRONT, GL_DIFFUSE, Materials[Groups[j].MaterialID - 1].DiffuseMaterial);
+					glMaterialfv(GL_FRONT, GL_SPECULAR, Materials[Groups[j].MaterialID - 1].SpecularMaterial);
+					glMaterialf(GL_FRONT, GL_SHININESS, Materials[Groups[j].MaterialID - 1].Ns);
+				}
 			}
 			glPushMatrix();
 			glTranslatef(Groups[j].GrpRotationAxis._X, Groups[j].GrpRotationAxis._Y, Groups[j].GrpRotationAxis._Z);
@@ -306,7 +335,7 @@ void ObjLoader::DrawLoadedObject(uint8 DrawMode, float Scale)
 				}
 				if ((Pattern == PATTERN_X_Y_Z || Pattern == PATTERN_X_Y) && is_textured)			//Drawing a textured object. Parsing the UV Coordinates
 				{
-					glTexCoord2f(UVData[UVIndices[i]]._X, UVData[UVIndices[i]]._Y);
+					glTexCoord3f(UVData[UVIndices[i]]._X, UVData[UVIndices[i]]._Y, UVData[UVIndices[i]]._Z);
 				}
 				glVertex3f(VertexData[VertexIndices[i]]._X * Scale, VertexData[VertexIndices[i]]._Y * Scale, VertexData[VertexIndices[i]]._Z * Scale);
 			}
@@ -366,9 +395,17 @@ void ObjLoader::DrawLoadedObject(uint8 DrawMode, float Scale)
 	case MWOL_DRAW_TEXTURED_QUAD:
 		for (int j = 0; j < GroupAmount; j++)
 		{
-			if (is_textured && Groups[j].MaterialID != 0)
+			if(is_textured && Groups[j].MaterialID != 0)
 			{
 				glBindTexture(GL_TEXTURE_2D, Texture[Materials[Groups[j].MaterialID - 1].TextureIndex[0]]);
+				if((LastLoadedMaterial != Materials[Groups[j].MaterialID - 1].ID) && (!TextureOverride))
+				{
+					LastLoadedMaterial = Materials[Groups[j].MaterialID - 1].ID;
+					glMaterialfv(GL_FRONT, GL_AMBIENT, Materials[Groups[j].MaterialID - 1].AmbientMaterial);
+					glMaterialfv(GL_FRONT, GL_DIFFUSE, Materials[Groups[j].MaterialID - 1].DiffuseMaterial);
+					glMaterialfv(GL_FRONT, GL_SPECULAR, Materials[Groups[j].MaterialID - 1].SpecularMaterial);
+					glMaterialf(GL_FRONT, GL_SHININESS, Materials[Groups[j].MaterialID - 1].Ns);
+				}
 			}
 			glPushMatrix();
 			glTranslatef(Groups[j].GrpRotationAxis._X, Groups[j].GrpRotationAxis._Y, Groups[j].GrpRotationAxis._Z);
@@ -385,7 +422,7 @@ void ObjLoader::DrawLoadedObject(uint8 DrawMode, float Scale)
 				}
 				if ((Pattern == PATTERN_X_Y_Z || Pattern == PATTERN_X_Y) && is_textured)			//Drawing a textured object. Parsing the UV Coordinates
 				{
-					glTexCoord2f(UVData[UVIndices[i]]._X, UVData[UVIndices[i]]._Y);
+					glTexCoord3f(UVData[UVIndices[i]]._X, UVData[UVIndices[i]]._Y, UVData[UVIndices[i]]._Z);
 				}
 				glVertex3f(VertexData[VertexIndices[i]]._X * Scale, VertexData[VertexIndices[i]]._Y * Scale, VertexData[VertexIndices[i]]._Z * Scale);
 			}
@@ -483,7 +520,7 @@ void ObjLoader::DrawLoadedObject(uint8 DrawMode, float Scale, uint16 GroupIndex)
 			}
 			if ((Pattern == PATTERN_X_Y_Z || Pattern == PATTERN_X_Y) && is_textured)			//Drawing a textured object. Parsing the UV Coordinates
 			{
-				glTexCoord2f(UVData[UVIndices[i]]._X, UVData[UVIndices[i]]._Y);
+				glTexCoord3f(UVData[UVIndices[i]]._X, UVData[UVIndices[i]]._Y, UVData[UVIndices[i]]._Z);
 			}
 			glVertex3f(VertexData[VertexIndices[i]]._X * Scale, VertexData[VertexIndices[i]]._Y * Scale, VertexData[VertexIndices[i]]._Z * Scale);
 		}
@@ -533,7 +570,7 @@ void ObjLoader::DrawLoadedObject(uint8 DrawMode, float Scale, uint16 GroupIndex)
 			}
 			if ((Pattern == PATTERN_X_Y_Z || Pattern == PATTERN_X_Y) && is_textured)			//Drawing a textured object. Parsing the UV Coordinates
 			{
-				glTexCoord2f(UVData[UVIndices[i]]._X, UVData[UVIndices[i]]._Y);
+				glTexCoord3f(UVData[UVIndices[i]]._X, UVData[UVIndices[i]]._Y, UVData[UVIndices[i]]._Z);
 			}
 			glVertex3f(VertexData[VertexIndices[i]]._X * Scale, VertexData[VertexIndices[i]]._Y * Scale, VertexData[VertexIndices[i]]._Z * Scale);
 		}
@@ -582,7 +619,7 @@ void ObjLoader::DrawLoadedObject(uint8 DrawMode, float Scale, uint16 GroupIndex)
 			}
 			if ((Pattern == PATTERN_X_Y_Z || Pattern == PATTERN_X_Y) && is_textured)			//Drawing a textured object. Parsing the UV Coordinates
 			{
-				glTexCoord2f(UVData[UVIndices[i]]._X, UVData[UVIndices[i]]._Y);
+				glTexCoord3f(UVData[UVIndices[i]]._X, UVData[UVIndices[i]]._Y, UVData[UVIndices[i]]._Z);
 			}
 			glVertex3f(VertexData[VertexIndices[i]]._X * Scale, VertexData[VertexIndices[i]]._Y * Scale, VertexData[VertexIndices[i]]._Z * Scale);
 		}
@@ -598,11 +635,12 @@ void ObjLoader::DrawLoadedBoundingBox(void)
 {
 	glColor3ub(BoundingBoxRed, BoundingBoxGreen, BoundingBoxBlue);
 	glPushMatrix();
-	glTranslatef(ObjRotationAxis._X, ObjRotationAxis._Y, ObjRotationAxis._Z);			//Set the postion back tha where it should be
+	glTranslatef(ObjRotationAxis._X, ObjRotationAxis._Y, ObjRotationAxis._Z);			//Set the postion back to where it should be
 	glRotatef(ObjRotation._X, 1, 0, 0);
 	glRotatef(ObjRotation._Y, 0, 1, 0);
 	glRotatef(ObjRotation._Z, 0, 0, 1);
-	glTranslatef(-ObjRotationAxis._X, -ObjRotationAxis._Y, -ObjRotationAxis._Z);		//Set the postion to 0 so the rotation is correct
+	//glTranslatef(-ObjRotationAxis._X, -ObjRotationAxis._Y, -ObjRotationAxis._Z);		//Set the postion to 0 so the rotation is correct
+	glTranslatef(ObjPosition._X, ObjPosition._Y, ObjPosition._Z);
 	glBegin(GL_LINE_LOOP);		//Upper BB face
 	glVertex3f(ObjBBMax._X, ObjBBMax._Y, ObjBBMax._Z);
 	glVertex3f(ObjBBMax._X, ObjBBMax._Y, ObjBBMin._Z);
@@ -639,7 +677,8 @@ void ObjLoader::DrawLoadedBoundingBox(uint16 GroupIndex)
 	glRotatef(ObjRotation._X, 1, 0, 0);
 	glRotatef(ObjRotation._Y, 0, 1, 0);
 	glRotatef(ObjRotation._Z, 0, 0, 1);
-	glTranslatef(-ObjRotationAxis._X, -ObjRotationAxis._Y, -ObjRotationAxis._Z);		//Set the postion to 0 so the rotation is correct
+	//glTranslatef(-ObjRotationAxis._X, -ObjRotationAxis._Y, -ObjRotationAxis._Z);		//Set the postion to 0 so the rotation is correct
+	glTranslatef(ObjPosition._X, ObjPosition._Y, ObjPosition._Z);
 	glPushMatrix();
 	glTranslatef(Groups[GroupIndex].GrpRotationAxis._X, Groups[GroupIndex].GrpRotationAxis._Y, Groups[GroupIndex].GrpRotationAxis._Z);			//Set the postion back tha where it should be
 	glRotatef(Groups[GroupIndex].GrpRotation._X, 1, 0, 0);
@@ -720,313 +759,531 @@ void ObjLoader::DrawLoadedNormals(uint16 GroupIndex)
 	glPopMatrix();
 }
 
+void ObjLoader::setBB(float X, float Y, float Z, ObjGroup *curGroup)
+{
+	if(X >= ObjBBMax._X)	//Setting the bounding box for the whole object
+	{
+		ObjBBMax._X = X;
+	}
+	if(X <= ObjBBMin._X)
+	{
+		ObjBBMin._X = X;
+	}
+	if(Y >= ObjBBMax._Y)
+	{
+		ObjBBMax._Y = Y;
+	}
+	if(Y <= ObjBBMin._Y)
+	{
+		ObjBBMin._Y = Y;
+	}
+	if(Z >= ObjBBMax._Z)
+	{
+		ObjBBMax._Z = Z;
+	}
+	if(Z <= ObjBBMin._Z)
+	{
+		ObjBBMin._Z = Z;
+	}
+	if(have_groups)
+	{
+		if(X >= curGroup->GrpBBMax._X)
+		{
+			curGroup->GrpBBMax._X = X;
+		}
+		if(X <= curGroup->GrpBBMin._X)
+		{
+			curGroup->GrpBBMin._X = X;
+		}
+		if(Y >= curGroup->GrpBBMax._Y)
+		{
+			curGroup->GrpBBMax._Y = Y;
+		}
+		if(Y <= curGroup->GrpBBMin._Y)
+		{
+			curGroup->GrpBBMin._Y = Y;
+		}
+		if(Z >= curGroup->GrpBBMax._Z)
+		{
+			curGroup->GrpBBMax._Z = Z;
+		}
+		if(Z <= curGroup->GrpBBMin._Z)
+		{
+			curGroup->GrpBBMin._Z = Z;
+		}
+	}
+}
+
+void ObjLoader::parseFaceX(List<uint32> *vertexIndexes, List<uint32> *unused, List<uint32> *unused2)
+{
+	uint32 vI[3], vIW;
+	fscanf(m_fileP, "%d %d %d ", &vI[0], &vI[1], &vI[2]);
+	vI[0]--;
+	vI[1]--;
+	vI[2]--;
+	vertexIndexes->AddCopy(vI, 3);
+	if(is_quadrilateral)
+	{
+		fscanf(m_fileP, "%d", &vIW);
+		vIW--;
+		vertexIndexes->Add(new uint32(vIW));
+	}
+}
+
+void ObjLoader::parseFaceXY(List<uint32> *vertexIndexes, List<uint32> *uvIndexes, List<uint32> *unused)
+{
+	uint32 vI[3], vIW, uvI[3], uvIW;
+	fscanf(m_fileP, "%d/%d %d/%d %d/%d ", &vI[0], &uvI[0], &vI[1], &uvI[1], &vI[2], &uvI[2]);
+	vI[0]--; uvI[0]--;
+	vI[1]--; uvI[1]--;
+	vI[2]--; uvI[2]--;
+	vertexIndexes->AddCopy(vI, 3);
+	uvIndexes->AddCopy(vI, 3);
+	if(is_quadrilateral)
+	{
+		fscanf(m_fileP, "%d/%d", &vIW, &uvIW);
+		vIW--;	uvIW--;
+		vertexIndexes->Add(new uint32(vIW));
+		uvIndexes->Add(new uint32(uvIW));
+	}
+}
+
+void ObjLoader::parseFaceXYZ(List<uint32> *vertexIndexes, List<uint32> *uvIndexes, List<uint32> *normalIndexes)
+{
+	uint32 vI[3], vIW, uvI[3], uvIW, nI[3], nIW;
+	fscanf(m_fileP, "%d/%d/%d %d/%d/%d %d/%d/%d ", &vI[0], &uvI[0], &nI[0], &vI[1], &uvI[1], &nI[1], &vI[2], &uvI[2], &nI[2]);
+	vI[0]--; uvI[0]--; nI[0]--;
+	vI[1]--; uvI[1]--; nI[1]--;
+	vI[2]--; uvI[2]--; nI[2]--;
+	vertexIndexes->AddCopy(vI, 3);
+	uvIndexes->AddCopy(uvI, 3);
+	normalIndexes->AddCopy(nI, 3);
+	if(is_quadrilateral)
+	{
+		fscanf(m_fileP, "%d/%d/%d", &vIW, &uvIW, &nIW);
+		vIW--; uvIW--; nIW--;
+		vertexIndexes->Add(new uint32(vIW));
+		uvIndexes->Add(new uint32(uvIW));
+		normalIndexes->Add(new uint32(nIW));
+	}
+}
+
+void ObjLoader::parseFaceXZ(List<uint32> *vertexIndexes, List<uint32> *normalIndexes, List<uint32> *unused)
+{
+	uint32 vI[3], vIW, nI[3], nIW;
+	fscanf(m_fileP, "%d//%d %d//%d %d//%d ", &vI[0], &nI[0], &vI[1], &nI[1], &vI[2], &nI[2]);
+	vI[0]--; nI[0]--;
+	vI[1]--; nI[1]--;
+	vI[2]--; nI[2]--;
+	vertexIndexes->AddCopy(vI, 3);
+	normalIndexes->AddCopy(nI, 3);
+	if(is_quadrilateral)
+	{
+		fscanf(m_fileP, "%d//%d", &vIW, &nIW);
+		vIW--; nIW--;
+		vertexIndexes->Add(new uint32(vIW));
+		normalIndexes->Add(new uint32(nIW));
+	}
+}
+
 void ObjLoader::setData(void)
 {
 	char TempBuffer[MAX_BUFFER_SIZE];
 	char Dump[512];							//For line skiping
+	List<uint32> listVertexIndex;
+	List<uint32> listNormalIndex;
+	List<uint32> listUVIndex;
+	List<mwVec3f> listVertexDT;
+	List<mwVec3f> listUVDT;
+	List<mwVec3f> listNormalDT;
+	List<ObjGroup> listGroups;
+	void(ObjLoader:: * parseFace)(List<uint32>*, List<uint32>*, List<uint32>*) = nullptr;
 	//START - First Pass
-	while (!feof(flstFileData))			//First pass. To malloc correctly the arrays
+	while (!feof(m_fileP))			//First pass. To malloc correctly the arrays
 	{
-		fscanf(flstFileData, "%s", TempBuffer);
+		fscanf(m_fileP, "%s", TempBuffer);
 		if (TempBuffer[0] == '#')			//This line is a comment, skip
 		{
-			fscanf(flstFileData, " %512[^\n]", Dump);
+			fscanf(m_fileP, " %512[^\n]", Dump);
 		}
 		else if (TempBuffer[0] == 'm' && TempBuffer[1] == 't' && TempBuffer[2] == 'l')		//This line defines a .mtl file
 		{
-			fscanf(flstFileData, " %512[^\n]", MaterialFilename);
+			fscanf(m_fileP, " %512[^\n]", MaterialFilename);
 			have_materials = true;
+		}
+		else if(TempBuffer[0] == 'o' && TempBuffer[1] == '\0')		//This line defines the object name
+		{
+			fscanf(m_fileP, "%s", ObjectName);
 		}
 		else if (TempBuffer[0] == 's')		//This line defines the smooth shading. If not present, defaults to off
 		{
-			fscanf(flstFileData, " %512[^\n]", Dump);
+			fscanf(m_fileP, " %512[^\n]", Dump);
 			if (Dump[0] == '1')		//Search for 1. This means the object have smooth shading. If not found, defaults to off
 			{
 				is_shadingSmooth = true;
 			}
 		}
-		else if (TempBuffer[0] == 'o' && TempBuffer[1] == '\0')		//This line defines the object name
-		{
-			fscanf(flstFileData, "%s", ObjectName);
-		}
+		//else if(TempBuffer[0] == 'u')		//This line defines the reference name inside the .mtl file
 		else if (TempBuffer[0] == 'g' && TempBuffer[1] == '\0')		//This line defines the group name
 		{
-			GroupAmount++;
+			//groups.add()
+			//GroupAmount++;
+			char buf[64] = { '\0' };
+			fscanf(m_fileP, " %64[^\n]", buf);
+			listGroups.Add(new ObjGroup(listGroups.Count() + 1, buf));
+			if(listGroups.Last()->ID > 1)
+			{
+				listGroups.RetrieveLast()->getPrevious()->getData()->RangeEnd = listVertexIndex.Count();
+			}
+			listGroups.Last()->RangeStart = listVertexIndex.Count();
 			have_groups = true;
 		}
 		else if (TempBuffer[0] == 'v')		//This line contains a vertex, a texture coordinate or a vertex normal!
 		{
 			if (TempBuffer[1] == '\0')		//This line is a vertex
 			{
-				VertexAmount++;
+				//VertexAmount++;
+				float X, Y, Z;
+				fscanf(m_fileP, "%f %f %f\n", &X, &Y, &Z);
+				setBB(X, Y, Z, listGroups.Last());
+				listVertexDT.Add(new mwVec3f(X, Y, Z));
 			}
 			else if (TempBuffer[1] == 't' && TempBuffer[2] == '\0')	//This line is a texture coordinate
 			{
-				is_textured = true;
-				UVAmount++;
+				//is_textured = true;
+				//UVAmount++;
+				float UVX, UVY, UVZ = 0;
+				char temp = '\0';
+				fscanf(m_fileP, "%f %f", &UVX, &UVY);
+				fscanf(m_fileP, "%c", &temp);
+				if(temp != '\n')	// This texture is three dimensional!
+				{
+					fseek(m_fileP, -1, SEEK_CUR);
+					fscanf(m_fileP, "%f\n", &UVZ);
+				}
+				listUVDT.Add(new mwVec3f(UVX, UVY, UVZ));
 			}
 			else if (TempBuffer[1] == 'n' && TempBuffer[2] == '\0')	//This line is a vertex normal
 			{
-				have_normals = true;
-				NormalsAmount++;
+				//have_normals = true;
+				//NormalsAmount++;
+				float nX, nY, nZ;
+				fscanf(m_fileP, "%f %f %f\n", &nX, &nY, &nZ);
+				listNormalDT.Add(new mwVec3f(nX, nY, nZ));
 			}
 		}
 		else if (TempBuffer[0] == 'f' && TempBuffer[1] == '\0')		//This line is face data
 		{	//By wavefront defaults, [x/y/z] for [Vertex to use/texture coordinate to use/normal to use]. they can appear or not in this format
 			//Possible formats: x | x/y | x//z | x/y/z
-			if (Pattern == 0)				//If the pattern is not know, find the pattern
+			if(Pattern)
 			{
-				fscanf(flstFileData, " %512[^\n]", TempBuffer);
+				(this->*parseFace)(&listVertexIndex, &listUVIndex, &listNormalIndex);
+			}
+			else if (Pattern == 0)				//If the pattern is not know, find the pattern
+			{
+				fscanf(m_fileP, " %512[^\n]", TempBuffer);
 				uint8 StringSize = patternChecker(TempBuffer);
+				fseek(m_fileP, -StringSize - 2, SEEK_CUR);	//Reset the pointer to the start of the line
 				//For this first time only!
-				FacesAmount += 3;
-				if (is_quadrilateral)
+				//FacesAmount += 3;
+				//if (is_quadrilateral)
+				//{
+				//	FacesAmount++;
+				//}
+				if(Pattern == PATTERN_X)
 				{
-					FacesAmount++;
+					parseFace = &ObjLoader::parseFaceX;
+				}
+				else if(Pattern == PATTERN_X_Y)
+				{
+					parseFace = &ObjLoader::parseFaceXY;
+				}
+				else if(Pattern == PATTERN_X_Y_Z)
+				{
+					parseFace = &ObjLoader::parseFaceXYZ;
+				}
+				else if(Pattern == PATTERN_X_Z)
+				{
+					parseFace = &ObjLoader::parseFaceXZ;
 				}
 			}
 			else
 			{
-				FacesAmount += 3;
-				if (is_quadrilateral)
-				{
-					FacesAmount++;
-				}
+				//We shouldn't fall here...
 			}
+			//else
+			//{
+			//	FacesAmount += 3;
+			//	if (is_quadrilateral)
+			//	{
+			//		FacesAmount++;
+			//	}
+			//}
+		}
+		else //Unknown line, dump it
+		{
+			fscanf(m_fileP, " %512[^\n]", Dump);
 		}
 	}
-	if (have_groups)
+	have_groups = !listGroups.Empty();
+	if (!have_groups)
 	{
-		Groups = new ObjGroup[GroupAmount];
+		GroupAmount = 1;
+		Groups = new ObjGroup[1]();
 	}
 	else
 	{
-		Groups = new ObjGroup[1];
+		Groups = listGroups.ToArrayTransfer();
 	}
-	VertexIndices = new uint32[FacesAmount];
-	NormalsIndices = new uint32[FacesAmount];
-	UVIndices = new uint32[FacesAmount];
-	VertexData = new mwVec3f[VertexAmount];
-	UVData = new mwVec2f[UVAmount];
-	NormalsData = new mwVec3f[NormalsAmount];
 
-	GroupAmount = 0;
-	VertexAmount = 0;
-	UVAmount = 0;
-	NormalsAmount = 0;
-	FacesAmount = 0;
-	//END - First Pass
-	rewind(flstFileData);							//ALL SET! Reset the pointer and prepare to save the data, FO' REAL!!
-	//START - Data gathering
-	while (!feof(flstFileData))
+	is_textured = !listUVDT.Empty();
+	if(is_textured)
 	{
-		fscanf(flstFileData, "%s", TempBuffer);
-		if (TempBuffer[0] == '#')			//This line is a comment, skip
-		{
-			fscanf(flstFileData, " %512[^\n]", Dump);
-		}
-		else if (TempBuffer[0] == 'o')		//This line is the object name (already read in the first pass, skip it)
-		{
-			fscanf(flstFileData, " %512[^\n]", Dump);
-		}
-		else if (TempBuffer[0] == 's')		//This line defines the smooth shading (already read in the first pass, skip it)
-		{
-			fscanf(flstFileData, " %512[^\n]", Dump);
-		}
-		else if (TempBuffer[0] == 'n')		//This line is the material name (already read in the first pass, skip it)
-		{
-			fscanf(flstFileData, " %512[^\n]", Dump);
-		}
-		else if (TempBuffer[0] == 'u')		//This line defines the reference name inside the .mtl file
-		{
-			if (have_groups)
-			{
-				fscanf(flstFileData, " %512[^\n]", Groups[GroupAmount - 1].MaterialReference);
-			}
-			else
-			{
-				fscanf(flstFileData, " %512[^\n]", Groups[0].MaterialReference);
-			}
-		}
-		else if (TempBuffer[0] == 'g' && TempBuffer[1] == '\0')		//This line defines the group name
-		{
-			fscanf(flstFileData, " %64[^\n]", Groups[GroupAmount].GroupName);
-			Groups[GroupAmount].ID = GroupAmount + 1;
-			if (Groups[GroupAmount].ID > 1)							//To prevent writing values in other memory block than the "Groups" structure
-			{
-				Groups[GroupAmount - 1].RangeEnd = FacesAmount;
-			}
-			Groups[GroupAmount].RangeStart = FacesAmount;
-			GroupAmount++;
-		}
-		else if (TempBuffer[0] == 'v')		//This line contains a vertex, a texture coordinate or a vertex normal!
-		{
-			if (TempBuffer[1] == '\0')		//This line is a vertex
-			{
-				fscanf(flstFileData, "%f %f %f\n", &VertexData[VertexAmount]._X, &VertexData[VertexAmount]._Y, &VertexData[VertexAmount]._Z);
-				GroupAmount--;								//Just for bounding box reading. Must be incremented at the end of this execution
-				if (VertexData[VertexAmount]._X >= ObjBBMax._X)	//Setting the bounding box for the whole object
-				{
-					ObjBBMax._X = VertexData[VertexAmount]._X;
-				}
-				if (VertexData[VertexAmount]._X <= ObjBBMin._X)
-				{
-					ObjBBMin._X = VertexData[VertexAmount]._X;
-				}
-				if (VertexData[VertexAmount]._Y >= ObjBBMax._Y)
-				{
-					ObjBBMax._Y = VertexData[VertexAmount]._Y;
-				}
-				if (VertexData[VertexAmount]._Y <= ObjBBMin._Y)
-				{
-					ObjBBMin._Y = VertexData[VertexAmount]._Y;
-				}
-				if (VertexData[VertexAmount]._Z >= ObjBBMax._Z)
-				{
-					ObjBBMax._Z = VertexData[VertexAmount]._Z;
-				}
-				if (VertexData[VertexAmount]._Z <= ObjBBMin._Z)
-				{
-					ObjBBMin._Z = VertexData[VertexAmount]._Z;
-				}
-				if (have_groups)
-				{
-					if (VertexData[VertexAmount]._X >= Groups[GroupAmount].GrpBBMax._X)
-					{
-						Groups[GroupAmount].GrpBBMax._X = VertexData[VertexAmount]._X;
-					}
-					if (VertexData[VertexAmount]._X <= Groups[GroupAmount].GrpBBMin._X)
-					{
-						Groups[GroupAmount].GrpBBMin._X = VertexData[VertexAmount]._X;
-					}
-					if (VertexData[VertexAmount]._Y >= Groups[GroupAmount].GrpBBMax._Y)
-					{
-						Groups[GroupAmount].GrpBBMax._Y = VertexData[VertexAmount]._Y;
-					}
-					if (VertexData[VertexAmount]._Y <= Groups[GroupAmount].GrpBBMin._Y)
-					{
-						Groups[GroupAmount].GrpBBMin._Y = VertexData[VertexAmount]._Y;
-					}
-					if (VertexData[VertexAmount]._Z >= Groups[GroupAmount].GrpBBMax._Z)
-					{
-						Groups[GroupAmount].GrpBBMax._Z = VertexData[VertexAmount]._Z;
-					}
-					if (VertexData[VertexAmount]._Z <= Groups[GroupAmount].GrpBBMin._Z)
-					{
-						Groups[GroupAmount].GrpBBMin._Z = VertexData[VertexAmount]._Z;
-					}
-				}
-				VertexAmount++;		//Incremented later so we don't need to make [VertexAmount-1] when computing the bounding box
-				GroupAmount++;		//This execution is over. Increment the GroupAmount for it's original state
-			}
-			else if (TempBuffer[1] == 't' && TempBuffer[2] == '\0')	//This line is a texture coordinate
-			{
-				fscanf(flstFileData, "%f %f\n", &UVData[UVAmount]._X, &UVData[UVAmount]._Y);
-				UVAmount++;
-			}
-			else if (TempBuffer[1] == 'n' && TempBuffer[2] == '\0')	//This line is a vertex normal
-			{
-				fscanf(flstFileData, "%f %f %f\n", &NormalsData[NormalsAmount]._X, &NormalsData[NormalsAmount]._Y, &NormalsData[NormalsAmount]._Z);
-				NormalsAmount++;
-			}
-		}
-		else if (TempBuffer[0] == 'f' && TempBuffer[1] == '\0')		//This line is face data
-		{	//By wavefront defaults, [x/y/z] for [Vertex to use/texture coordinate to use/normal to use]. they can appear or not in this format
-			//Possible formats: x | x/y | x//z | x/y/z
-			if (Pattern == 0)				//If the pattern is not know, find the pattern
-			{
-				fscanf(flstFileData, " %512[^\n]", TempBuffer);
-				uint8 StringSize = patternChecker(TempBuffer);
-				fseek(flstFileData, -StringSize - 2, SEEK_CUR);	//Reset the pointer to the start of the line
-				//For this first time only!
-			}
-			//TODO: Check why with quadrilaterals the value is saved incorrectly (Reading the buffer 2 times after last line hit)
-			else if (Pattern == PATTERN_X)
-			{
-				fscanf(flstFileData, "%d %d %d ", &VertexIndices[FacesAmount], &VertexIndices[FacesAmount + 1], &VertexIndices[FacesAmount + 2]);
-				VertexIndices[FacesAmount]--;
-				VertexIndices[FacesAmount + 1]--;
-				VertexIndices[FacesAmount + 2]--;
-				if (is_quadrilateral)
-				{
-					fscanf(flstFileData, "%d", &VertexIndices[FacesAmount + 3]);
-					VertexIndices[FacesAmount + 3]--;
-				}
-				FacesAmount += 3;
-				if (is_quadrilateral)
-				{
-					FacesAmount++;
-				}
-			}
-			else if (Pattern == PATTERN_X_Y)
-			{
-				fscanf(flstFileData, "%d/%d %d/%d %d/%d ", &VertexIndices[FacesAmount], &UVIndices[FacesAmount], &VertexIndices[FacesAmount + 1], &UVIndices[FacesAmount + 1], &VertexIndices[FacesAmount + 2], &UVIndices[FacesAmount + 2]);
-				VertexIndices[FacesAmount]--;
-				VertexIndices[FacesAmount + 1]--;
-				VertexIndices[FacesAmount + 2]--;
-				UVIndices[FacesAmount]--;
-				UVIndices[FacesAmount + 1]--;
-				UVIndices[FacesAmount + 2]--;
-				if (is_quadrilateral)
-				{
-					fscanf(flstFileData, "%d/%d", &VertexIndices[FacesAmount + 3], &UVIndices[FacesAmount + 3]);
-					VertexIndices[FacesAmount + 3]--;
-					UVIndices[FacesAmount + 3]--;
-				}
-				FacesAmount += 3;
-				if (is_quadrilateral)
-				{
-					FacesAmount++;
-				}
-			}
-			else if (Pattern == PATTERN_X_Y_Z)
-			{
-				fscanf(flstFileData, "%d/%d/%d %d/%d/%d %d/%d/%d ", &VertexIndices[FacesAmount], &UVIndices[FacesAmount], &NormalsIndices[FacesAmount], &VertexIndices[FacesAmount + 1], &UVIndices[FacesAmount + 1], &NormalsIndices[FacesAmount + 1], &VertexIndices[FacesAmount + 2], &UVIndices[FacesAmount + 2], &NormalsIndices[FacesAmount + 2]);
-				VertexIndices[FacesAmount]--;
-				VertexIndices[FacesAmount + 1]--;
-				VertexIndices[FacesAmount + 2]--;
-				UVIndices[FacesAmount]--;
-				UVIndices[FacesAmount + 1]--;
-				UVIndices[FacesAmount + 2]--;
-				NormalsIndices[FacesAmount]--;
-				NormalsIndices[FacesAmount + 1]--;
-				NormalsIndices[FacesAmount + 2]--;
-				if (is_quadrilateral)
-				{
-					fscanf(flstFileData, "%d/%d/%d", &VertexIndices[FacesAmount + 3], &UVIndices[FacesAmount + 3], &NormalsIndices[FacesAmount + 3]);
-					VertexIndices[FacesAmount + 3]--;
-					UVIndices[FacesAmount + 3]--;
-					NormalsIndices[FacesAmount + 3]--;
-				}
-				FacesAmount += 3;
-				if (is_quadrilateral)
-				{
-					FacesAmount++;
-				}
-			}
-			else
-			{
-				fscanf(flstFileData, "%d//%d %d//%d %d//%d ", &VertexIndices[FacesAmount], &NormalsIndices[FacesAmount], &VertexIndices[FacesAmount + 1], &NormalsIndices[FacesAmount + 1], &VertexIndices[FacesAmount + 2], &NormalsIndices[FacesAmount + 2]);
-				VertexIndices[FacesAmount]--;
-				VertexIndices[FacesAmount + 1]--;
-				VertexIndices[FacesAmount + 2]--;
-				NormalsIndices[FacesAmount]--;
-				NormalsIndices[FacesAmount + 1]--;
-				NormalsIndices[FacesAmount + 2]--;
-				if (is_quadrilateral)
-				{
-					fscanf(flstFileData, "%d//%d", &VertexIndices[FacesAmount + 3], &NormalsIndices[FacesAmount + 3]);
-					VertexIndices[FacesAmount + 3]--;
-					NormalsIndices[FacesAmount + 3]--;
-				}
-				FacesAmount += 3;
-				if (is_quadrilateral)
-				{
-					FacesAmount++;
-				}
-			}
-		}
+		UVAmount = listUVDT.Count();
+		UVIndices = listUVIndex.ToArrayTransfer();
+		UVData = listUVDT.ToArrayTransfer();
 	}
+
+	have_normals = !listNormalDT.Empty();
+	if(have_normals)
+	{
+		NormalsAmount = listNormalDT.Count();
+		NormalsIndices = listNormalIndex.ToArrayTransfer();
+		NormalsData = listNormalDT.ToArrayTransfer();
+	}
+	VertexAmount = listVertexDT.Count();
+	FacesAmount = listVertexIndex.Count();
+	VertexIndices = listVertexIndex.ToArrayTransfer();
+	VertexData = listVertexDT.ToArrayTransfer();
+	
+
+
+	//Groups = new ObjGroup[GroupAmount];
+	//VertexIndices = new uint32[FacesAmount]();
+	//NormalsIndices = new uint32[FacesAmount]();
+	//UVIndices = new uint32[FacesAmount]();
+	//VertexData = new mwVec3f[VertexAmount]();
+	//UVData = new mwVec2f[UVAmount]();
+	//NormalsData = new mwVec3f[NormalsAmount]();
+	//GroupAmount = 0;
+	//VertexAmount = 0;
+	//UVAmount = 0;
+	//NormalsAmount = 0;
+	//FacesAmount = 0;
+
+
+	////END - First Pass
+	//rewind(m_fileP);							//ALL SET! Reset the pointer and prepare to save the data, FO' REAL!!
+	////START - Data gathering
+	//while (!feof(m_fileP))
+	//{
+	//	fscanf(m_fileP, "%s", TempBuffer);
+	//	if (TempBuffer[0] == '#')			//This line is a comment, skip
+	//	{
+	//		fscanf(m_fileP, " %512[^\n]", Dump);
+	//	}
+	//	else if (TempBuffer[0] == 'o')		//This line is the object name (already read in the first pass, skip it)
+	//	{
+	//		fscanf(m_fileP, " %512[^\n]", Dump);
+	//	}
+	//	else if (TempBuffer[0] == 's')		//This line defines the smooth shading (already read in the first pass, skip it)
+	//	{
+	//		fscanf(m_fileP, " %512[^\n]", Dump);
+	//	}
+	//	else if (TempBuffer[0] == 'n')		//This line is the material name (already read in the first pass, skip it)
+	//	{
+	//		fscanf(m_fileP, " %512[^\n]", Dump);
+	//	}
+	//	else if (TempBuffer[0] == 'u')		//This line defines the reference name inside the .mtl file
+	//	{
+	//		if (have_groups)
+	//		{
+	//			fscanf(m_fileP, " %512[^\n]", Groups[GroupAmount - 1].MaterialReference);
+	//		}
+	//		else
+	//		{
+	//			fscanf(m_fileP, " %512[^\n]", Groups[0].MaterialReference);
+	//		}
+	//	}
+	//	else if (TempBuffer[0] == 'g' && TempBuffer[1] == '\0')		//This line defines the group name
+	//	{
+	//		fscanf(m_fileP, " %64[^\n]", Groups[GroupAmount].GroupName);
+	//		Groups[GroupAmount].ID = GroupAmount + 1;
+	//		if (Groups[GroupAmount].ID > 1)							//To prevent writing values in other memory block than the "Groups" structure
+	//		{
+	//			Groups[GroupAmount - 1].RangeEnd = FacesAmount;
+	//		}
+	//		Groups[GroupAmount].RangeStart = FacesAmount;
+	//		GroupAmount++;
+	//	}
+	//	else if (TempBuffer[0] == 'v')		//This line contains a vertex, a texture coordinate or a vertex normal!
+	//	{
+	//		if (TempBuffer[1] == '\0')		//This line is a vertex
+	//		{
+	//			fscanf(m_fileP, "%f %f %f\n", &VertexData[VertexAmount]._X, &VertexData[VertexAmount]._Y, &VertexData[VertexAmount]._Z);
+	//			GroupAmount--;								//Just for bounding box reading. Must be incremented at the end of this execution
+	//			if (VertexData[VertexAmount]._X >= ObjBBMax._X)	//Setting the bounding box for the whole object
+	//			{
+	//				ObjBBMax._X = VertexData[VertexAmount]._X;
+	//			}
+	//			if (VertexData[VertexAmount]._X <= ObjBBMin._X)
+	//			{
+	//				ObjBBMin._X = VertexData[VertexAmount]._X;
+	//			}
+	//			if (VertexData[VertexAmount]._Y >= ObjBBMax._Y)
+	//			{
+	//				ObjBBMax._Y = VertexData[VertexAmount]._Y;
+	//			}
+	//			if (VertexData[VertexAmount]._Y <= ObjBBMin._Y)
+	//			{
+	//				ObjBBMin._Y = VertexData[VertexAmount]._Y;
+	//			}
+	//			if (VertexData[VertexAmount]._Z >= ObjBBMax._Z)
+	//			{
+	//				ObjBBMax._Z = VertexData[VertexAmount]._Z;
+	//			}
+	//			if (VertexData[VertexAmount]._Z <= ObjBBMin._Z)
+	//			{
+	//				ObjBBMin._Z = VertexData[VertexAmount]._Z;
+	//			}
+	//			if (have_groups)
+	//			{
+	//				if (VertexData[VertexAmount]._X >= Groups[GroupAmount].GrpBBMax._X)
+	//				{
+	//					Groups[GroupAmount].GrpBBMax._X = VertexData[VertexAmount]._X;
+	//				}
+	//				if (VertexData[VertexAmount]._X <= Groups[GroupAmount].GrpBBMin._X)
+	//				{
+	//					Groups[GroupAmount].GrpBBMin._X = VertexData[VertexAmount]._X;
+	//				}
+	//				if (VertexData[VertexAmount]._Y >= Groups[GroupAmount].GrpBBMax._Y)
+	//				{
+	//					Groups[GroupAmount].GrpBBMax._Y = VertexData[VertexAmount]._Y;
+	//				}
+	//				if (VertexData[VertexAmount]._Y <= Groups[GroupAmount].GrpBBMin._Y)
+	//				{
+	//					Groups[GroupAmount].GrpBBMin._Y = VertexData[VertexAmount]._Y;
+	//				}
+	//				if (VertexData[VertexAmount]._Z >= Groups[GroupAmount].GrpBBMax._Z)
+	//				{
+	//					Groups[GroupAmount].GrpBBMax._Z = VertexData[VertexAmount]._Z;
+	//				}
+	//				if (VertexData[VertexAmount]._Z <= Groups[GroupAmount].GrpBBMin._Z)
+	//				{
+	//					Groups[GroupAmount].GrpBBMin._Z = VertexData[VertexAmount]._Z;
+	//				}
+	//			}
+	//			VertexAmount++;		//Incremented later so we don't need to make [VertexAmount-1] when computing the bounding box
+	//			GroupAmount++;		//This execution is over. Increment the GroupAmount for it's original state
+	//		}
+	//		else if (TempBuffer[1] == 't' && TempBuffer[2] == '\0')	//This line is a texture coordinate
+	//		{
+	//			fscanf(m_fileP, "%f %f\n", &UVData[UVAmount]._X, &UVData[UVAmount]._Y);
+	//			UVAmount++;
+	//		}
+	//		else if (TempBuffer[1] == 'n' && TempBuffer[2] == '\0')	//This line is a vertex normal
+	//		{
+	//			fscanf(m_fileP, "%f %f %f\n", &NormalsData[NormalsAmount]._X, &NormalsData[NormalsAmount]._Y, &NormalsData[NormalsAmount]._Z);
+	//			NormalsAmount++;
+	//		}
+	//	}
+	//	else if (TempBuffer[0] == 'f' && TempBuffer[1] == '\0')		//This line is face data
+	//	{	//By wavefront defaults, [x/y/z] for [Vertex to use/texture coordinate to use/normal to use]. they can appear or not in this format
+	//		//Possible formats: x | x/y | x//z | x/y/z
+	//		if (Pattern == 0)				//If the pattern is not know, find the pattern
+	//		{
+	//			fscanf(m_fileP, " %512[^\n]", TempBuffer);
+	//			uint8 StringSize = patternChecker(TempBuffer);
+	//			fseek(m_fileP, -StringSize - 2, SEEK_CUR);	//Reset the pointer to the start of the line
+	//			//For this first time only!
+	//		}
+	//		//TODO: Check why with quadrilaterals the value is saved incorrectly (Reading the buffer 2 times after last line hit)
+	//		else if (Pattern == PATTERN_X)
+	//		{
+	//			fscanf(m_fileP, "%d %d %d ", &VertexIndices[FacesAmount], &VertexIndices[FacesAmount + 1], &VertexIndices[FacesAmount + 2]);
+	//			VertexIndices[FacesAmount]--;
+	//			VertexIndices[FacesAmount + 1]--;
+	//			VertexIndices[FacesAmount + 2]--;
+	//			if (is_quadrilateral)
+	//			{
+	//				fscanf(m_fileP, "%d", &VertexIndices[FacesAmount + 3]);
+	//				VertexIndices[FacesAmount + 3]--;
+	//			}
+	//			FacesAmount += 3;
+	//			if (is_quadrilateral)
+	//			{
+	//				FacesAmount++;
+	//			}
+	//		}
+	//		else if (Pattern == PATTERN_X_Y)
+	//		{
+	//			fscanf(m_fileP, "%d/%d %d/%d %d/%d ", &VertexIndices[FacesAmount], &UVIndices[FacesAmount], &VertexIndices[FacesAmount + 1], &UVIndices[FacesAmount + 1], &VertexIndices[FacesAmount + 2], &UVIndices[FacesAmount + 2]);
+	//			VertexIndices[FacesAmount]--;
+	//			VertexIndices[FacesAmount + 1]--;
+	//			VertexIndices[FacesAmount + 2]--;
+	//			UVIndices[FacesAmount]--;
+	//			UVIndices[FacesAmount + 1]--;
+	//			UVIndices[FacesAmount + 2]--;
+	//			if (is_quadrilateral)
+	//			{
+	//				fscanf(m_fileP, "%d/%d", &VertexIndices[FacesAmount + 3], &UVIndices[FacesAmount + 3]);
+	//				VertexIndices[FacesAmount + 3]--;
+	//				UVIndices[FacesAmount + 3]--;
+	//			}
+	//			FacesAmount += 3;
+	//			if (is_quadrilateral)
+	//			{
+	//				FacesAmount++;
+	//			}
+	//		}
+	//		else if (Pattern == PATTERN_X_Y_Z)
+	//		{
+	//			fscanf(m_fileP, "%d/%d/%d %d/%d/%d %d/%d/%d ", &VertexIndices[FacesAmount], &UVIndices[FacesAmount], &NormalsIndices[FacesAmount], &VertexIndices[FacesAmount + 1], &UVIndices[FacesAmount + 1], &NormalsIndices[FacesAmount + 1], &VertexIndices[FacesAmount + 2], &UVIndices[FacesAmount + 2], &NormalsIndices[FacesAmount + 2]);
+	//			VertexIndices[FacesAmount]--;
+	//			VertexIndices[FacesAmount + 1]--;
+	//			VertexIndices[FacesAmount + 2]--;
+	//			UVIndices[FacesAmount]--;
+	//			UVIndices[FacesAmount + 1]--;
+	//			UVIndices[FacesAmount + 2]--;
+	//			NormalsIndices[FacesAmount]--;
+	//			NormalsIndices[FacesAmount + 1]--;
+	//			NormalsIndices[FacesAmount + 2]--;
+	//			if (is_quadrilateral)
+	//			{
+	//				fscanf(m_fileP, "%d/%d/%d", &VertexIndices[FacesAmount + 3], &UVIndices[FacesAmount + 3], &NormalsIndices[FacesAmount + 3]);
+	//				VertexIndices[FacesAmount + 3]--;
+	//				UVIndices[FacesAmount + 3]--;
+	//				NormalsIndices[FacesAmount + 3]--;
+	//			}
+	//			FacesAmount += 3;
+	//			if (is_quadrilateral)
+	//			{
+	//				FacesAmount++;
+	//			}
+	//		}
+	//		else
+	//		{
+	//			fscanf(m_fileP, "%d//%d %d//%d %d//%d ", &VertexIndices[FacesAmount], &NormalsIndices[FacesAmount], &VertexIndices[FacesAmount + 1], &NormalsIndices[FacesAmount + 1], &VertexIndices[FacesAmount + 2], &NormalsIndices[FacesAmount + 2]);
+	//			VertexIndices[FacesAmount]--;
+	//			VertexIndices[FacesAmount + 1]--;
+	//			VertexIndices[FacesAmount + 2]--;
+	//			NormalsIndices[FacesAmount]--;
+	//			NormalsIndices[FacesAmount + 1]--;
+	//			NormalsIndices[FacesAmount + 2]--;
+	//			if (is_quadrilateral)
+	//			{
+	//				fscanf(m_fileP, "%d//%d", &VertexIndices[FacesAmount + 3], &NormalsIndices[FacesAmount + 3]);
+	//				VertexIndices[FacesAmount + 3]--;
+	//				NormalsIndices[FacesAmount + 3]--;
+	//			}
+	//			FacesAmount += 3;
+	//			if (is_quadrilateral)
+	//			{
+	//				FacesAmount++;
+	//			}
+	//		}
+	//	}
+	//}
 	if (have_groups)
 	{
 		Groups[GroupAmount - 1].RangeEnd = FacesAmount;
@@ -1035,7 +1292,7 @@ void ObjLoader::setData(void)
 	{
 		Groups[0].RangeStart = 0;
 		Groups[0].RangeEnd = FacesAmount;
-		GroupAmount++;
+		//GroupAmount++;
 	}
 	AbsoluteFacesAmount = FacesAmount;
 	if (is_quadrilateral)			//Fix to display the amount correctly
@@ -1096,7 +1353,7 @@ void ObjLoader::setMaterials(void)
 	}
 	//All set, let's read that data
 	openFile(MaterialPath, "r");
-	if (flstFileData == NULL)
+	if (m_fileP == NULL)
 	{
 		have_materials = false;
 	}
@@ -1107,12 +1364,12 @@ void ObjLoader::setMaterials(void)
 		char Dump[MAX_BUFFER_SIZE];
 		//TODO: Make the reader knows if the end-of-line character is CRLF (Windows) or LF (UNIX)
 		//START- First pass
-		while (!feof(flstFileData))
+		while (!feof(m_fileP))
 		{
-			fscanf(flstFileData, " %s", &TempBuffer);
+			fscanf(m_fileP, " %s", &TempBuffer);
 			if (TempBuffer[0] == '#')
 			{
-				fscanf(flstFileData, " %512[^\n]", &Dump);
+				fscanf(m_fileP, " %512[^\n]", &Dump);
 			}
 			else if (TempBuffer[0] == 'n' && TempBuffer[1] == 'e')										//This line defines the material name
 			{
@@ -1120,7 +1377,7 @@ void ObjLoader::setMaterials(void)
 			}
 		}
 		//END - First pass
-		rewind(flstFileData);							//ALL SET! Reseting the pointer
+		rewind(m_fileP);							//ALL SET! Reseting the pointer
 
 		Materials = new MaterialData[MaterialAmount];
 
@@ -1128,16 +1385,16 @@ void ObjLoader::setMaterials(void)
 		TextureAmount = 0;
 		int16 i;
 		//START - Data gathering
-		while (!feof(flstFileData))
+		while (!feof(m_fileP))
 		{
-			fscanf(flstFileData, " %s", &TempBuffer);
+			fscanf(m_fileP, " %s", &TempBuffer);
 			if (TempBuffer[0] == '#')
 			{
-				fscanf(flstFileData, " %512[^\n]", &Dump);
+				fscanf(m_fileP, " %512[^\n]", &Dump);
 			}
 			else if (TempBuffer[0] == 'n' && TempBuffer[1] == 'e')										//This line defines the material name
 			{
-				fscanf(flstFileData, " %s", &Materials[MaterialAmount].MaterialName);
+				fscanf(m_fileP, " %s", &Materials[MaterialAmount].MaterialName);
 				Materials[MaterialAmount].ID = MaterialAmount + 1;
 				MaterialAmount++;
 			}
@@ -1150,7 +1407,7 @@ void ObjLoader::setMaterials(void)
 					{
 						if (TempBuffer[7] != '\0')							//This line is not NULL, then it defines the texture
 						{
-							fscanf(flstFileData, " %s", &Materials[MaterialAmount - 1].KaMap);
+							fscanf(m_fileP, " %s", &Materials[MaterialAmount - 1].KaMap);
 							TextureAmount++;
 						}
 					}
@@ -1158,7 +1415,7 @@ void ObjLoader::setMaterials(void)
 					{
 						if (TempBuffer[7] != '\0')							//This line is not NULL, then it defines the texture
 						{
-							fscanf(flstFileData, " %s", &Materials[MaterialAmount - 1].KsMap);
+							fscanf(m_fileP, " %s", &Materials[MaterialAmount - 1].KsMap);
 							TextureAmount++;
 						}
 					}
@@ -1166,7 +1423,7 @@ void ObjLoader::setMaterials(void)
 					{
 						if (TempBuffer[7] != '\0')							//This line is not NULL, then it defines the texture
 						{
-							fscanf(flstFileData, " %s", &Materials[MaterialAmount - 1].KdMap);
+							fscanf(m_fileP, " %s", &Materials[MaterialAmount - 1].KdMap);
 							TextureAmount++;
 						}
 					}
@@ -1175,7 +1432,7 @@ void ObjLoader::setMaterials(void)
 				{
 					if (TempBuffer[6] != '\0')								//This line is not NULL, then it defines the texture
 					{
-						fscanf(flstFileData, " %s", &Materials[MaterialAmount - 1].dMap);
+						fscanf(m_fileP, " %s", &Materials[MaterialAmount - 1].dMap);
 						TextureAmount++;
 					}
 				}
@@ -1183,7 +1440,7 @@ void ObjLoader::setMaterials(void)
 				{
 					if (TempBuffer[7] != '\0')								//If this line is not NULL, then it defines the texture
 					{
-						fscanf(flstFileData, " %s", &Materials[MaterialAmount - 1].NsMap);
+						fscanf(m_fileP, " %s", &Materials[MaterialAmount - 1].NsMap);
 						TextureAmount++;
 					}
 				}
@@ -1191,7 +1448,7 @@ void ObjLoader::setMaterials(void)
 				{
 					if (TempBuffer[9] != '\0')								//This line is not NULL, then it defines the texture
 					{
-						fscanf(flstFileData, " %s", &Materials[MaterialAmount - 1].bumpMap);
+						fscanf(m_fileP, " %s", &Materials[MaterialAmount - 1].bumpMap);
 						TextureAmount++;
 					}
 				}
@@ -1200,7 +1457,7 @@ void ObjLoader::setMaterials(void)
 			{
 				if (TempBuffer[5] != '\0')									//This line is not NULL, then it defines the texture
 				{
-					fscanf(flstFileData, " %s", &Materials[MaterialAmount - 1].bumpMap);
+					fscanf(m_fileP, " %s", &Materials[MaterialAmount - 1].bumpMap);
 					TextureAmount++;
 				}
 			}
@@ -1208,42 +1465,42 @@ void ObjLoader::setMaterials(void)
 			{
 				if (TempBuffer[0] == 'T')
 				{
-					fscanf(flstFileData, " %f", &Materials[MaterialAmount - 1].d);
+					fscanf(m_fileP, " %f", &Materials[MaterialAmount - 1].d);
 				}
 				else
 				{
-					fscanf(flstFileData, " %f", &Materials[MaterialAmount - 1].d);
+					fscanf(m_fileP, " %f", &Materials[MaterialAmount - 1].d);
 				}
 			}
 			else if (TempBuffer[0] == 'k' || TempBuffer[0] == 'K')								//This line contains a material property
 			{
 				if (TempBuffer[1] == 's' || TempBuffer[1] == 'S')								//This line holds the specular color
 				{
-					fscanf(flstFileData, " %f %f %f", &Materials[MaterialAmount - 1].Ks[0], &Materials[MaterialAmount - 1].Ks[1], &Materials[MaterialAmount - 1].Ks[2]);
+					fscanf(m_fileP, " %f %f %f", &Materials[MaterialAmount - 1].Ks[0], &Materials[MaterialAmount - 1].Ks[1], &Materials[MaterialAmount - 1].Ks[2]);
 				}
 				else if (TempBuffer[1] == 'a' || TempBuffer[1] == 'A')							//This line holds the ambient color
 				{
-					fscanf(flstFileData, " %f %f %f", &Materials[MaterialAmount - 1].Ka[0], &Materials[MaterialAmount - 1].Ka[1], &Materials[MaterialAmount - 1].Ka[2]);
+					fscanf(m_fileP, " %f %f %f", &Materials[MaterialAmount - 1].Ka[0], &Materials[MaterialAmount - 1].Ka[1], &Materials[MaterialAmount - 1].Ka[2]);
 				}
 				else if (TempBuffer[1] == 'd' || TempBuffer[1] == 'D')							//This line holds the diffuse color
 				{
-					fscanf(flstFileData, " %f %f %f", &Materials[MaterialAmount - 1].Kd[0], &Materials[MaterialAmount - 1].Kd[1], &Materials[MaterialAmount - 1].Kd[2]);
+					fscanf(m_fileP, " %f %f %f", &Materials[MaterialAmount - 1].Kd[0], &Materials[MaterialAmount - 1].Kd[1], &Materials[MaterialAmount - 1].Kd[2]);
 				}
 			}
 			else if ((TempBuffer[0] == 'n' || TempBuffer[0] == 'N') && TempBuffer[1] != 'e')
 			{
 				if (TempBuffer[1] == 's' || TempBuffer[1] == 'S')
 				{
-					fscanf(flstFileData, " %f", &Materials[MaterialAmount - 1].Ns);
+					fscanf(m_fileP, " %f", &Materials[MaterialAmount - 1].Ns);
 				}
 				else if (TempBuffer[1] == 'i' || TempBuffer[1] == 'I')
 				{
-					fscanf(flstFileData, " %f", &Materials[MaterialAmount - 1].Ni);
+					fscanf(m_fileP, " %f", &Materials[MaterialAmount - 1].Ni);
 				}
 			}
 			else if (TempBuffer[0] == 'i')														//This line sets the Illumination model
 			{
-				fscanf(flstFileData, "%d", &Materials[MaterialAmount - 1].illum);
+				fscanf(m_fileP, "%d", &Materials[MaterialAmount - 1].illum);
 			}
 		}
 	}
@@ -1420,7 +1677,10 @@ int ObjLoader::countUniqueTextures(uint16 PredictedAmount)
 	}
 	//Data gathering
 	//Upon dynamic creating of TextureFilename, when this function exits, will be a block of memory of (String * PredictedAmount) Fragmented!
-	TextureFilename = new String64[Unique];
+	if(Unique > 0)
+	{
+		TextureFilename = new String64[Unique];
+	}
 	for (int i = 0, Unique = 0; i < MaterialAmount; i++)
 	{
 		if (Materials[i].KaMap[0] != '\0')			//Let's see if the values are not '\0', witch by default means they are not NULL
@@ -1582,7 +1842,7 @@ void ObjLoader::loadObject(char *Filename)
 	{
 		resetMaxMin();
 		openFile(Filename, "r");
-		if (flstState == MWFS_SUCCESS)
+		if (m_stateCode == FileStatus::FS_SUCCESS)
 		{
 			sprintf(FilePath, "%s", Filename);
 			is_fromFile = true;
@@ -1603,7 +1863,7 @@ void ObjLoader::loadObject(char *Filename, char *Texture)
 		TextureOverride = true;
 		resetMaxMin();
 		openFile(Filename, "r");
-		if (flstState == MWFS_SUCCESS)
+		if (m_stateCode == FileStatus::FS_SUCCESS)
 		{
 			sprintf(FilePath, "%s", Filename);
 			sprintf(OverrideTexturePath, Texture);
@@ -1623,6 +1883,10 @@ void ObjLoader::loadTexture(void)				//Loads a texture data from the complimenta
 	uint16 MaterialSeeker = 0;
 	uint16 RemaningTexCounter = 0;
 	char Filename[MAX_LEN_FILEPATH];
+	if(TextureFilename == nullptr)				//No textures, abort!
+	{
+		return;
+	}
 	for (int i = 0; i < TextureAmount; i++)
 	{
 		if (TextureFilename[i].getString()[1] == ':')				//If the filename has ':', then it's the full path

@@ -1,0 +1,987 @@
+/*-------Perceptron Base-------
+*	??
+*	--??
+*
+*
+*	Moon Wiz Studios (c) - 10/08/2020
+*	by: Ramon Darwich de Menezes
+*
+*
+*	YOU MAY NOT use this file for commercial purposes without permission from this file creator OR Moon Wiz Studios
+*	YOU MAY use it in any project of your own or edit this file, given the proper credits to Moon Wiz Studios
+*   This notice MAY NOT be removed nor altered from any source distribution
+*
+*	Version 0.0.0
+*/
+
+#ifndef _H_MWPERCEPTRON_
+#define _H_MWPERCEPTRON_
+
+#include <stdio.h>									//Used for 'DataSet' file reading and MLP import and exporting
+#include <stdlib.h>									//Used for 'rand()' method
+#include <omp.h>									//For multi-threaded neuron evaluation
+
+//#define MLP_DEBUG
+//#define MLP_VERBOSE								//Outputs more text in some functions
+#define RAND_METHOD (rand() / (double)RAND_MAX)		//Random number generation method. Used for making values between [0..1]. Overwrite this for whatever method required
+
+//Holds a set of 'i' lines of data containing 'j' values each, the last value being the exepected value
+class TrainingDataSet
+{
+private:
+	bool m_isSetReady;		//If true, the set is ready to be used (Read from file and populated). If false, well, we don't recomend using it
+	int m_valuesPerLine;	//How many 'j' values should we read per line?
+	int m_entries;			//How many 'i' lines should we read?
+	double **m_data;		//Holds all the read data. The last index of each row 'i' is reserved for the expected value
+
+	void Clear(void)
+	{
+		if(m_data)
+		{
+			for(int i = 0; i < m_valuesPerLine; i++)
+			{
+				delete[] m_data[i];
+				m_data[i] = nullptr;
+			}
+			delete[] m_data;
+		}
+	}
+
+public:
+	TrainingDataSet(int valuesPerLine, int lines) : m_valuesPerLine(valuesPerLine), m_entries(lines), m_data(nullptr)
+	{
+		changeTrainingSize(m_valuesPerLine, m_entries);
+	}
+	TrainingDataSet(int valuesPerLine, int lines, const char *trainingSet) : m_valuesPerLine(valuesPerLine), m_entries(lines), m_data(nullptr)
+	{
+		changeTrainingSize(m_valuesPerLine, m_entries);
+		m_isSetReady = changeTrainingSet(trainingSet);
+	}
+
+	~TrainingDataSet()
+	{
+		Clear();
+	}
+
+	void changeTrainingSize(int valuesPerLine, int lines)
+	{
+		Clear();
+		m_entries = lines;
+		m_valuesPerLine = valuesPerLine;
+		m_data = new double*[m_entries];
+		for(int i = 0; i < m_entries; i++)
+		{
+			m_data[i] = new double[m_valuesPerLine]();
+		}
+	}
+
+	//Changes the training set from a file. Returns false if it was unsuccessful 
+	bool changeTrainingSet(const char *trainingSet)
+	{
+		FILE *fp = fopen(trainingSet, "r");
+		if(fp)
+		{
+			int stop = m_valuesPerLine - 1;
+			for(int i = 0; i < m_entries && (fgetc(fp) != EOF); i++)
+			{
+				fseek(fp, -1L, SEEK_CUR);
+				for(int j = 0; j < stop; j++)
+				{
+					(void)fscanf(fp, "%lf", &m_data[i][j]);		//'(void)' so the compiler don't emit more warnings
+				}
+				(void)fscanf(fp, "%lf%*c", &m_data[i][stop]);
+			}
+			fclose(fp);
+			m_isSetReady = true;
+			return m_isSetReady;
+		}
+#ifdef MLP_VERBOSE
+		printf("[TDTSET][ERROR] Failed to read training set @ '%s' !\n", trainingSet);
+#endif
+		m_isSetReady = false;
+		return m_isSetReady;
+	}
+
+	void changeTraining(int valuesPerLine, int lines, const char *trainingSet)
+	{
+		changeTrainingSize(valuesPerLine, lines);
+		changeTrainingSet(trainingSet);
+	}
+
+	int getAmountLines(void)
+	{
+		return m_entries;
+	}
+	int getAmountValuesPerLine(void)
+	{
+		return m_valuesPerLine;
+	}
+	double getValue(int lineIndex, int valueIndex)
+	{
+		return m_data[lineIndex][valueIndex];
+	}
+	double getValueExpectedOfLine(int lineIndex)
+	{
+		return m_data[lineIndex][m_valuesPerLine - 1];
+	}
+
+	bool isDataSetReady(void)
+	{
+		return m_isSetReady;
+	}
+
+	void fillInputStream(double *inStream, int lineIndex)
+	{
+		for(int i = 0; i < m_valuesPerLine; i++)
+		{
+			inStream[i] = m_data[lineIndex][i];
+		}
+	}
+};
+
+class NeuronBase;
+
+//The connection between neurons, serving it an input, along with it's weight
+class Sinapse
+{
+protected:
+	double *m_in;			//Points to the input data
+	double m_weight;		//The weight of this input
+	NeuronBase *m_from;		//If this sinapse connects two neurons, points to the neuron's output used as this input. If 'nullptr', then it's a fixed sinapse (bias or input)
+
+public:
+	Sinapse() : m_weight(1), m_in(nullptr), m_from(nullptr) { }
+	Sinapse(double w) : m_weight(w), m_in(nullptr), m_from(nullptr) { };
+
+	void setInput(double *src) { m_in = src; }
+	void setWeight(double w) { m_weight = w; }
+
+	double getWeight(void)
+	{
+		return m_weight;
+	}
+	double getInput(void)
+	{
+		return *m_in;
+	}
+	NeuronBase *fromNeuron(void)
+	{
+		return m_from;
+	}
+	void comingFrom(NeuronBase *inRef)
+	{
+		m_from = inRef;
+	}
+
+	bool isInputPointerSet(void)
+	{
+		return m_in != nullptr;
+	}
+
+	double Result(void) { return *m_in * m_weight; }
+};
+
+//Creates a neuron with n sinapses initialized with input: 1 and weight 0
+class NeuronBase
+{
+protected:
+	double m_bias;								//Bias Value. Defaults to 1.0. Used mostly as a local memory address for sinapse [0]
+	double m_output;							//Output value
+	double m_loc_grad;							//Local Gradient of the neuron
+	const unsigned short m_inputs;				//Amount of inputs this neuron have. Add +1 to account for the bias sinapse
+	const unsigned short m_sinaAmount;			//Amount of inputs this neuron have. Add +1 to account for the bias sinapse
+	Sinapse *m_sinapse = nullptr;				//Input descriptor. Contains a pointer for an input, it's weight and from which neuron it's coming from, if it's input derives from a neuron m_output's
+
+	virtual double Activation(double sum) = 0;	//Function that should determines the final m_output of the neuron
+	
+public:
+	NeuronBase(int connections) : m_inputs((unsigned short)connections), m_sinaAmount((unsigned short)connections + 1), m_bias(1.0), m_output(0), m_loc_grad(0.0)
+	{ 
+		m_sinapse = new Sinapse[m_sinaAmount]();
+		m_sinapse[0].setInput(&m_bias);
+		for(int i = 0; i < m_sinaAmount; i++)
+		{
+			m_sinapse[i].setWeight(1);
+		}
+	}
+
+	~NeuronBase()
+	{
+		if(m_sinapse)
+		{
+			delete[] m_sinapse;
+			m_sinapse = nullptr;
+		}
+	}
+
+	//Returns the d/dx of the activation function. Class derivations of this should change this as well. If the activation function doesn't have a derivative, return 0
+	virtual double Derivative(void) = 0;
+	virtual double Derivative(double x) = 0;
+	////Updates all the weights of the neuron using the formula: Wi = Wi + LR * error * Xi
+	//virtual void updateWeightAll(double LearningRate, double error)
+	//{
+	//	for(int i = 0, stop = getSinapseAmount(); i < stop; i++)
+	//	{
+	//		m_sinapse[i].setWeight(m_sinapse[i].getWeight() + LearningRate * error * m_sinapse[i].getInput());
+	//	}
+	//}
+	//The result of this neuron
+	virtual double Result(void)
+	{
+		m_output = Activation(getSum());
+		return m_output;
+	}
+	//Compares the output with an expected value, allowing to clamp it. !! The neuron must have been evaluated by a previous 'Result()' call !!
+	virtual double ComputeError(double expected)
+	{
+		return expected - m_output;
+	}
+
+	////Adds the weight at 'sinapseIndex' with the 'weight' provided. All offset by 1 to not use the bias by accident
+	//void updateWeight(double weight, int inputIndex)
+	//{
+	//	m_sinapse[inputIndex + 1].setWeight(weight + m_sinapse[inputIndex + 1].getWeight());
+	//}
+	void setInput(double *inp, double weight, int inputIndex)
+	{
+		m_sinapse[inputIndex + 1].setInput(inp);
+		m_sinapse[inputIndex + 1].setWeight(weight);
+	}
+	void setInputAddress(double *inp, int inputIndex)
+	{
+		m_sinapse[inputIndex + 1].setInput(inp);
+	}
+	void setInputWeight(double weight, int inputIndex)
+	{
+		m_sinapse[inputIndex + 1].setWeight(weight);
+	}
+	void setSinapse(double *inp, double weight, int sinapseIndex)
+	{
+		m_sinapse[sinapseIndex].setWeight(weight);
+		m_sinapse[sinapseIndex].setInput(inp);
+	}
+	void setSinapseInputAddress(double *inp, int sinapseIndex)
+	{ 
+		m_sinapse[sinapseIndex].setInput(inp);
+	}
+	void setSinapseWeight(double weight, int sinapseIndex)
+	{
+		m_sinapse[sinapseIndex].setWeight(weight);
+	}
+	void setBias(double b, double weight)
+	{ 
+		m_bias = b;
+		m_sinapse[0].setWeight(weight);
+	}
+	void setBiasValue(double b)
+	{ 
+		m_bias = b;
+	}
+	void setBiasWeight(double bw)
+	{
+		m_sinapse[0].setWeight(bw);
+	}
+	void setLocalGradient(double grad)
+	{
+		m_loc_grad = grad;
+	}
+
+	double getBiasValue(void)
+	{ 
+		return m_bias;
+	}
+	double getBiasWeight(void)
+	{
+		return m_sinapse[0].getWeight();
+	}
+	double getInputWeight(int inputIndex)
+	{
+		return m_sinapse[inputIndex + 1].getWeight();
+	}
+	double getInputValue(int inputIndex)
+	{
+		return m_sinapse[inputIndex + 1].getInput();
+	}
+	int getInputAmount(void)
+	{
+		return m_inputs;
+	}
+	int getSinapseAmount(void)
+	{
+		return m_sinaAmount;
+	}
+	double getSinapseInputValue(int sinapseIndex)
+	{
+		return m_sinapse[sinapseIndex].getInput();
+	}
+	double getSinapseWeight(int sinapseIndex)
+	{
+		return m_sinapse[sinapseIndex].getWeight();
+	}
+	
+	//Evaluates the neuron
+	double getSum(void)
+	{
+		double sum = 0.0;
+		for (int i = 0; i < m_sinaAmount; i++)
+		{
+			sum += m_sinapse[i].Result();
+		}
+		return sum;
+	}
+	double getOutput(void)
+	{
+		return m_output;
+	}
+#ifdef _DEBUG
+	double* d_getOutaddress(void)
+	{
+		return &m_output;
+	}
+#endif
+	Sinapse* getSinapse(int i)
+	{
+		return &m_sinapse[i];
+	}
+	double getLocalGradient(void)
+	{
+		return m_loc_grad;
+	}
+
+	void linkOutput(Sinapse *target)
+	{
+		if (target)	//Setting 'target' m_sinapse input as being this neuron m_output
+		{
+			target->setInput(&m_output);
+			target->comingFrom(this);
+		}
+	}
+
+	void Print(void)
+	{
+		for(int i = 0; i < m_sinaAmount; i++)
+		{
+			printf("\tX%d= %.4lf\t w%d= %.4lf\t->\t%.4lf\n", i, m_sinapse[i].getInput(), i, m_sinapse[i].getWeight(), m_sinapse[i].Result());
+		}
+	}
+};
+
+// Creates a layer of neurons
+template<class NeuronType>
+class NeuronLayer
+{
+private: 
+	bool m_isReady = false;				//Becomes true if the layer is ready to be used
+	int m_neuMax;						//Amount of m_neurons this layer contains
+	NeuronType **m_neurons = nullptr;	//Assumes polymorphism and will rely solely on 'NeuronBase' methods
+
+	void buildLayer(int inputEach)
+	{
+		m_neurons = new NeuronType*[m_neuMax];
+		for (int i = 0; i < m_neuMax; i++)
+		{
+			m_neurons[i] = new NeuronType(inputEach);
+		}
+	}
+
+public:
+	NeuronLayer() : m_neuMax(0) { }
+	NeuronLayer(int neuronAmount, int inputEach) : m_neuMax(neuronAmount)
+	{
+		buildLayer(inputEach);
+	}
+
+	~NeuronLayer()
+	{
+		if(m_neurons)
+		{
+			for (int i = 0; i < m_neuMax; i++)
+			{
+				delete m_neurons[i];
+				m_neurons[i] = nullptr;
+			}
+			delete[] m_neurons;
+			m_neurons = nullptr;
+		}
+	}
+
+	//Links each output FROM THIS LAYER to the target layer input. Target layer MUST have one input for each output, excluding the bias
+	bool connectLayers(NeuronLayer *targetLayer)
+	{
+		if (targetLayer == nullptr  || m_neurons == nullptr || m_neuMax != (targetLayer->m_neurons[0]->getInputAmount()))
+		{
+			//Failed to link: Either the target targetLayer or this targetLayer doesn't exist or it's input doesn't matches the amount of m_neurons of this targetLayer
+			return false;
+		}
+		for (int i = 0; i < targetLayer->m_neuMax; i++)
+		{
+			for (int j = 0; j < m_neuMax; j++)
+			{
+				//From each neuron 'j', link it's output Address to each input 'j' for each neuron 'i' of the next targetLayer
+				m_neurons[j]->linkOutput(targetLayer->m_neurons[i]->getSinapse(j + 1));
+			}
+		}
+		m_isReady = true;
+		return true;
+	}
+
+	NeuronType* getNeuron(int index)
+	{
+		return m_neurons[index];
+	}
+
+	void buildLayer(int neuronAmount, int inputEach, bool isInputOutputLayer)
+	{
+		if (m_neurons == nullptr)	//Only build the layer if it wasn't built yet
+		{
+			m_isReady = isInputOutputLayer;
+			m_neuMax = neuronAmount;
+			buildLayer(inputEach);
+		}
+	}
+
+	bool isReady(void)
+	{
+		return m_isReady;
+	}
+
+	int getNeuronAmount(void)
+	{
+		return m_neuMax;
+	}
+
+	void setInput(int neuronIndex, int inputIndex, double *inputAddress, double weight)
+	{
+		m_neurons[neuronIndex]->setInput(inputAddress, weight, inputIndex);
+	}
+	void setBias(int neuronIndex, double bias, double weight)
+	{
+		m_neurons[neuronIndex]->setBias(bias, weight);
+	}
+
+	//Executes the layer, without returning a value (since we cannot assume this layer have multiple neurons)
+	void Execute(void)
+	{
+		//#pragma omp parallel for
+		for(int i = 0; i < m_neuMax; i++)
+		{
+			m_neurons[i]->Result();
+		}
+	}
+	double Result(int outputNeuronIndex)
+	{ 
+		return m_neurons[outputNeuronIndex]->getOutput();
+	}
+
+	void Print(void)
+	{
+		if (m_neurons)
+		{
+			for (int i = 0; i < m_neuMax; i++)
+			{
+				printf("Neuron %d [%p] (%d sinapses) input Addresses:\n", i + 1, m_neurons[i], m_neurons[i]->getSinapseAmount());
+				printf("\tX0 from [BIAS]\n");
+				printf("\t\tInp: %8.4lf\tx\tw: %8.4lf\t=\t%8.4lf\n", m_neurons[i]->getBiasValue(), m_neurons[i]->getBiasWeight(), m_neurons[i]->getBiasWeight());
+				for (int j = 1; j < m_neurons[i]->getSinapseAmount(); j++)
+				{
+					Sinapse *temp = m_neurons[i]->getSinapse(j);
+					if (temp->fromNeuron())
+					{
+						printf("\tX%d from [%p]\n", j, temp->fromNeuron());
+					}
+					else
+					{ 
+						printf("\tX%d from [-STREAM-]\n", j);
+					}
+					if(temp->isInputPointerSet())
+					{
+						printf("\t\tInp: %8.4lf\tx\tw: %8.4lf\t=\t%8.4lf\n", temp->getInput(), temp->getWeight(), temp->Result());
+					}
+					else
+					{
+						printf("\t\tInp: NULL\tx\tw: %8.4lf\t=\t[!! WARNING INPUT NOT SET !!]\n", temp->getWeight());
+					}
+				}
+				printf("\tOutput= %8.4lf \t Loc.Gradient: %8.4lf\n", m_neurons[i]->getOutput(), m_neurons[i]->getLocalGradient());
+			}
+		}
+		else
+		{
+			printf("[N.LYR][ERROR] Layer not built!\n");
+		}
+	}
+};
+
+template<class NeuronType>
+class MultilayerNetwork
+{
+private:
+	int m_hiddenLayers;							//How many hidden layers exists within the network
+	int m_outputLayer;							//Index of the output layer. Shortcut for 'hiddenLayers + 1', because we always have an input and output layers
+	int m_amountLayers;							//Total amount of layers
+	NeuronLayer<NeuronType> *m_MLN = nullptr;	//Multi Layer Network array. Index [0] is the input layer and [m_outputLayer]
+
+	int verifyRecursive(NeuronType *neu)
+	{
+		//If 'neu' is nullptr, something went wrong
+		if (neu == nullptr)
+		{
+			return 1;
+		}
+		//Test if we reached the input layer
+		for (int i = 0; i < m_MLN[0].getNeuronAmount(); i++)
+		{
+			if (m_MLN[0].getNeuron(i) == neu)
+			{
+				return 0;
+			}
+		}
+		//If we didn't yet, try to reach it
+		for (int i = 1; i < neu->getSinapseAmount(); i++)	//Start with i=1 to ignore the bias
+		{
+			return verifyRecursive((NeuronType*)neu->getSinapse(i)->fromNeuron());
+		}
+		return -1;	//Shouldn't reach here. If we do, something is VERY WRONG
+	}
+
+	void PurgeNetwork(void)
+	{
+		if(m_MLN)
+		{
+			delete[] m_MLN;
+			m_MLN = nullptr;
+		}
+		m_hiddenLayers = m_outputLayer = m_amountLayers = 0;
+	}
+
+public:
+	MultilayerNetwork(const char *MLPWeightFile)
+	{
+		ImportWeights(MLPWeightFile);
+	}
+	MultilayerNetwork(int hiddenLayers, int inpNeuronAmount, int inputAmount) : m_hiddenLayers(hiddenLayers < 0 ? 0 : hiddenLayers), m_outputLayer(m_hiddenLayers + 1), m_amountLayers(m_hiddenLayers + 2)
+	{
+		m_MLN = new NeuronLayer<NeuronType>[2 + hiddenLayers]();
+		m_MLN[0].buildLayer(inpNeuronAmount, inputAmount, true);
+	}
+
+	~MultilayerNetwork()
+	{
+		PurgeNetwork();
+	}
+
+	bool ImportWeights(const char *MLPWeightsFile)
+	{
+		PurgeNetwork();
+		FILE *fp = fopen(MLPWeightsFile, "r");
+		if(fp)
+		{
+			int inputAmount = 0, inpNeuronAmount = 0, i = 0;
+			if(fscanf(fp, "%d %d\n%d\n", &inputAmount, &m_hiddenLayers, &inpNeuronAmount) == 3)	//Must read 3 values
+			{
+				m_hiddenLayers = m_hiddenLayers < 0 ? 0 : m_hiddenLayers;
+				m_outputLayer = m_hiddenLayers + 1;
+				m_amountLayers = m_hiddenLayers + 2;
+
+				//All good, allocate layers and stuff
+				m_MLN = new NeuronLayer<NeuronType>[2 + m_hiddenLayers]();
+				m_MLN[0].buildLayer(inpNeuronAmount, inputAmount, true);
+				do 
+				{
+					for(int j = 0; j < m_MLN[i].getNeuronAmount(); j++)
+					{
+						NeuronBase *neu = m_MLN[i].getNeuron(j);
+						int sinaStop = neu->getSinapseAmount() - 1;
+						double weight = 0.0;
+						for(int k = 0; k < sinaStop; k++)
+						{
+							if(fscanf(fp, "%lf ", &weight) != 1)
+							{
+								PurgeNetwork();
+#ifdef MLP_VERBOSE
+								printf("[MLP][ERROR] Couldn't import weight data from '%s' !\n > File is damaged or bad formated", MLPWeightsFile);
+#endif							
+								fclose(fp);
+								return false;
+							}
+							neu->setSinapseWeight(weight, k);
+						}
+						if(fscanf(fp, "%lf\n", &weight) != 1)
+						{
+							PurgeNetwork();
+#ifdef MLP_VERBOSE
+							printf("[MLP][ERROR] Couldn't import weight data from '%s' !\n > File is damaged or bad formated", MLPWeightsFile);
+#endif						
+							fclose(fp);
+							return false;
+						}
+						neu->setSinapseWeight(weight, sinaStop);
+					}
+					if(i == m_amountLayers - 1)
+					{
+#ifdef MLP_VERBOSE
+						printf("[MLP][INFO] Weight data successufully imported!\n");
+#endif					
+						fclose(fp);
+						return true;
+					}
+					else if(fscanf(fp, "%d\n", &inpNeuronAmount) != 1)
+					{
+						PurgeNetwork();
+#ifdef MLP_VERBOSE
+						printf("[MLP][ERROR] Couldn't import weight data from '%s' !\n > File is damaged or bad formated", MLPWeightsFile);
+#endif					
+						fclose(fp);
+						return false;
+					}
+					setLayer(i + 1, inpNeuronAmount);
+				} while(++i < m_amountLayers);
+			}
+		}
+		PurgeNetwork();
+#ifdef MLP_VERBOSE
+		printf("[MLP][ERROR] Couldn't import weight data from '%s' !\n > File couldn't be opened", MLPWeightsFile);
+#endif
+		return false;
+	}
+	void ExportWeights(const char *OutputPath)
+	{
+		FILE *fp = fopen(OutputPath, "w");
+		fprintf(fp, "%d %d\n", m_MLN[0].getNeuron(0)->getInputAmount(), m_hiddenLayers);
+		for(int i = 0; i < m_amountLayers; i++)
+		{
+			fprintf(fp, "%d\n", m_MLN[i].getNeuronAmount());
+			for(int j = 0; j < m_MLN[i].getNeuronAmount(); j++)
+			{
+				NeuronBase *neu = m_MLN[i].getNeuron(j);
+				for(int k = 0; k < neu->getSinapseAmount(); k++)
+				{
+					fprintf(fp, "%lf ", neu->getSinapseWeight(k));
+				}
+				fprintf(fp, "\n");
+			}
+		}
+		fclose(fp);
+	}
+
+	//Custom set the 'weight' of conection 'inputIndex' from neuron 'neuronIndex' located on layer 'layerIndex'
+	void setWeight(int layerIndex, int neuronIndex, int inputIndex, double weight)
+	{
+		m_MLN[layerIndex].getNeuron(neuronIndex)->setInputWeight(weight, inputIndex);
+	}
+	void setBias(int layerIndex, int neuronIndex, double iValue, double weight)
+	{
+		m_MLN[layerIndex].getNeuron(neuronIndex)->setBias(iValue, weight);
+	//	m_MLN[layerIndex].getNeuron(neuronIndex)->setBiasWeight(weight);
+	}
+	void setBias(double iValue, double weight)
+	{
+		for(int i = 0; i < m_amountLayers; i++)
+		{
+			for(int j = 0; j < m_MLN[i].getNeuronAmount(); j++)
+			{
+				m_MLN[i].getNeuron(j)->setBias(iValue, weight);
+				//m_MLN[i].getNeuron(j)->setBiasWeight(weight);
+			}
+		}
+	}
+	void setInputStream(int neuronIndex, int inputIndex, double *inputAddress)
+	{
+		m_MLN[0].getNeuron(neuronIndex)->setInputAddress(inputAddress, inputIndex);
+	}
+	//Fills all the input neurons with a 1:1 correspondence to the input stream addresses. The 'addressArray' should match with the amount of inputs per neuron
+	void setInputStreamAllNeurons(double *addressArray)
+	{
+		for(int i = 0; i < m_MLN[0].getNeuronAmount(); i++)
+		{
+			NeuronBase *neu = m_MLN[0].getNeuron(i);
+			for(int j = 0; j < neu->getInputAmount(); j++)
+			{
+				neu->setInputAddress(&addressArray[j], j);
+			}
+		}
+	}
+	void setInputStreamAllNeurons(int inputIndex, double *inputAddress)
+	{
+		for(int i = 0; i < m_MLN[0].getNeuronAmount(); i++)
+		{
+			m_MLN[0].getNeuron(i)->setInputAddress(inputAddress, inputIndex);
+		}
+	}
+	//Sets the 'weight' of connection 'inputIndex' from neuron 'neuronIndex' and sets the source of input 'inputAddress' of the hidden layer 0
+	bool setInput(int neuronIndex, int inputIndex, double *inputAddress, double weight)
+	{
+		m_MLN[0].setInput(neuronIndex, inputIndex, inputAddress, weight);
+		return true;
+	}
+	//Sets each hidden layer manually. If setting the last hidden layer, also sets the output layer
+	bool setLayer(int hiddenIndex, int neuronAmount)
+	{
+		if (hiddenIndex > 0)
+		{
+			m_MLN[hiddenIndex].buildLayer(neuronAmount, m_MLN[hiddenIndex - 1].getNeuronAmount(), hiddenIndex == m_outputLayer);
+			return m_MLN[hiddenIndex - 1].connectLayers(&m_MLN[hiddenIndex]);
+		}
+		//Invalid index
+		return false;
+	}
+	//Sets the amount of output neurons we have at the last layer
+	bool setOutputLayer(int neuronAmount)
+	{
+		return setLayer(m_outputLayer, neuronAmount);
+	}
+
+	int getLayerCount(void)
+	{
+		return m_amountLayers;
+	}
+	int getIndexOutput(void)
+	{
+		return m_outputLayer;
+	}
+	int getSinapseTotal(void)
+	{
+		int sinaT = 0;
+		for(int i = 0; i < m_amountLayers; i++)
+		{
+			for(int j = 0; j < m_MLN[i].getNeuronAmount(); j++)
+			{
+				sinaT += m_MLN[i].getNeuron(j)->getSinapseAmount();
+			}
+		}
+		return sinaT;
+	}
+
+	//Resets all the weights in the network, to the 'globalWeight' value, and set bias to 'bias'
+	void ResetWeights(double globalWeight, double bias)
+	{
+		for (int i = 0; i < m_amountLayers; i++)
+		{
+			for (int j = 0; j < m_MLN[i].getNeuronAmount(); j++)
+			{
+				m_MLN[i].getNeuron(j)->setBiasWeight(bias);
+				for (int k = 0; k < m_MLN[i].getNeuron(j)->getInputAmount(); k++)
+				{
+					m_MLN[i].getNeuron(j)->setInputWeight(globalWeight, k);
+				}
+			}
+		}
+	}
+	//Resets all the weights in the network, including bias, to the 'globalWeight' value
+	void ResetWeights(double globalWeight)
+	{
+		ResetWeights(globalWeight, globalWeight);
+	}
+
+#ifdef MLP_DEBUG
+	NeuronLayer<NeuronType>* d_getLayer(int i)
+	{
+		return &m_MLN[i];
+	}
+#endif
+	//Randomize all the weights on the network, between ['min'..'scale + min'] using standard rand()
+	void RandomizeWeights(double min, double scale)
+	{
+		NeuronBase *neuron = nullptr;
+		for(int i = 0; i < m_amountLayers; i++)
+		{
+			for(int j = 0; j < m_MLN[i].getNeuronAmount(); j++)
+			{
+				neuron = m_MLN[i].getNeuron(j);
+				for(int k = 0; k < neuron->getSinapseAmount(); k++)
+				{
+					neuron->setSinapseWeight(RAND_METHOD * scale + min, k);
+				}
+			}
+		}
+	}
+	//Randomize all the weights on the network, between [0..1] using standard rand()
+	void RandomizeWeights(void)
+	{
+		RandomizeWeights(0.0, 1.0);
+	}
+	void Unstuck(double minW, double maxW, int shuffles)
+	{
+		for(int i = 0; i < shuffles; i++)
+		{
+			int layer = rand() % m_amountLayers;
+			int neuron = rand() % m_MLN[layer].getNeuronAmount();
+			m_MLN[layer].getNeuron(neuron)->setSinapseWeight(RAND_METHOD * maxW + minW, rand() % m_MLN[layer].getNeuron(neuron)->getSinapseAmount());
+		}
+	}
+
+	//Executes the whole network. Should be used only to yield results from the network
+	void Execute(void)
+	{
+		for (int i = 0; i < m_amountLayers; i++)
+		{
+			m_MLN[i].Execute();
+#ifdef MLP_VERBOSE
+			printf("---------------------------------------------------------- [LAYER %3d EXECUTION]\n", i);
+			Print();
+#endif
+		}
+	}
+
+	NeuronType* getNeuron(int layerIndex, int neuronIndex)
+	{
+		return m_MLN[layerIndex].getNeuron(neuronIndex);
+	}
+
+	void TrainNetwork(double expected, double learningRate)
+	{
+		Execute();
+		NeuronBase *neuron = nullptr;
+		//double error = 0.0;				//Sum of squared diferences of the output layer
+		//Calculating the output Error and local gradients
+		//for(int i = 0; i < m_MLN[m_outputLayer].getNeuronAmount(); i++)
+		//{
+		//	neuron = m_MLN[m_outputLayer].getNeuron(i);
+		//	double temp = neuron->ComputeError(expected);		//This OR just expected - Result(), need testing
+		//	error += temp * temp;
+		//}
+		//error = -2 * m_MLN[m_outputLayer].getNeuron(0)->ComputeError(expected);
+		for(int i = 0; i < m_MLN[m_outputLayer].getNeuronAmount(); i++)
+		{
+			neuron = m_MLN[m_outputLayer].getNeuron(i);
+			neuron->setLocalGradient(-2 * neuron->ComputeError(expected) * neuron->Derivative());
+
+			//Updating output Weights
+			double lrLocGrad = learningRate * neuron->getLocalGradient();	//Optimization
+			for(int j = 1; j < neuron->getSinapseAmount(); j++)
+			{
+				neuron->setSinapseWeight(neuron->getSinapseWeight(j) - lrLocGrad * neuron->getSinapseInputValue(j), j);
+			}
+			neuron->setBiasWeight(neuron->getBiasWeight() - lrLocGrad);
+		}
+
+		//Calculating hidden layers gradients
+		for(int i = m_outputLayer - 1; i >= 0; i--)
+		{
+			for(int j = 0; j < m_MLN[i].getNeuronAmount(); j++)
+			{
+				double partDeriv = 0.0;			//Partial derivative relative to the sum of local gradients * it's weights
+				neuron = m_MLN[i].getNeuron(j);
+				for(int k = 0, nxt = i + 1; k < m_MLN[nxt].getNeuronAmount(); k++)
+				{
+					partDeriv += m_MLN[nxt].getNeuron(k)->getLocalGradient() * m_MLN[nxt].getNeuron(k)->getInputWeight(j);
+				}
+				neuron->setLocalGradient(partDeriv * neuron->Derivative());
+
+				double lrLocGrad = learningRate * neuron->getLocalGradient();
+				for(int k = 1; k < neuron->getSinapseAmount(); k++)
+				{
+					neuron->setSinapseWeight(neuron->getSinapseWeight(k) - lrLocGrad * neuron->getSinapseInputValue(k), k);
+				}
+				neuron->setBiasWeight(neuron->getBiasWeight() - lrLocGrad);
+			}
+		}
+		//Thus, the derivative for a given pair of diferences is -2 * (Y-Yo)
+		//For output layers, the gradient it's this derivative * the Neuron's derivative (In sigmoid's case, X * (1 - X)
+		//New weight W = W - (LR * derivative)
+	}
+
+	//Used to pull a given output from the network
+	double Result(int outputNeuronIndex)
+	{
+		return m_MLN[m_outputLayer].Result(outputNeuronIndex);
+	}
+
+	bool isNetworkReady(void)
+	{
+		int result = 0;
+		for(int i = 0; i < m_amountLayers; i++)
+		{
+			if(!m_MLN[i].isReady())
+			{
+#ifdef MLP_VERBOSE
+				printf("[MLP][WARNING] Layer %3d reports NOT being ready!\n", i);
+#endif
+
+				return false;
+			}
+			for(int j = 0; j < m_MLN[i].getNeuronAmount(); j++)
+			{
+				NeuronBase *neu = m_MLN[i].getNeuron(j);
+				for(int k = 1; k < neu->getSinapseAmount(); k++)
+				{
+					if(!neu->getSinapse(k)->isInputPointerSet())
+					{
+#ifdef MLP_VERBOSE
+						printf("[MLP][WARNING] Sinapse %4d from neuron %3d at layer %d3 input pointer is NULL!\n", k, j, i);
+#endif
+						return false;
+					}
+					if(neu->getSinapse(k)->getWeight() == 0.0)
+					{
+#ifdef MLP_VERBOSE
+						printf("[MLP][WARNING] Sinapse %4d from neuron %3d at layer %3d weight is 0! (Maybe uninitialized?)\n", k, j, i);
+#endif
+					}
+				}
+			}
+		}
+		//Verifies Back Propagation integrity
+		//	* Goes from each output neuron to each input, fails if any connection is broken
+		for(int i = 0; i < m_MLN[m_outputLayer].getNeuronAmount(); i++)
+		{
+			result += verifyRecursive(m_MLN[m_outputLayer].getNeuron(i));
+		}
+		if(result)
+		{
+#ifdef MLP_VERBOSE
+			printf("[MLP][WARNING] Network reported NOT having a complete back-propagation path!\n");
+#endif
+			return false;
+		}
+#ifdef MLP_VERBOSE
+		printf("[MLP][INFO] Network successfully passed all verification steps!\n");
+#endif
+		return true;
+	}
+
+	void Print(void)
+	{
+		for (int i = 0; i < m_amountLayers; i++)
+		{
+			if (i == 0)
+			{
+				printf("[INPUT LAYER]------------------------");
+			}
+			else if (i == m_outputLayer)
+			{
+				printf("[OUTPUT LAYER]-----------------------");
+			}
+			else
+			{
+				printf("[LAYER %2d]--------------------------", i);
+			}
+			printf("[%s]\n", (m_MLN[i].isReady() ? "READY" : " !! NOT READY !! "));
+			m_MLN[i].Print();
+		}
+	}
+
+	void Print(int layerIndex)
+	{
+		m_MLN[layerIndex].Print();
+	}
+
+	void PrintWeights(void)
+	{
+		for(int i = 0; i < m_amountLayers; i++)
+		{
+			for(int j = 0; j < m_MLN[i].getNeuronAmount(); j++)
+			{
+				NeuronBase *neu = m_MLN[i].getNeuron(j);
+				//printf("b(%d,%d)  : %11.6lf | grad: %11.6lf | LocGrad: %11.6lf\n", i, j, neu->getBiasWeight(), neu->getBiasGradient(), neu->getLocalGradient());
+				printf("b(%d,%d)  : %11.6lf | LocGrad: %11.6lf\n", i, j, neu->getBiasWeight(), neu->getLocalGradient());
+				for(int k = 0; k < neu->getInputAmount(); k++)
+				{
+					//printf("W(%d,%d,%d): %11.6lf | grad: %11.6lf\n", i, j, k, neu->getInputWeight(k), neu->getInputGradient(k));
+					printf("W(%d,%d,%d): %11.6lf\n", i, j, k, neu->getInputWeight(k));
+				}
+			}
+		}
+	}
+};
+#endif

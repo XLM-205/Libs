@@ -125,6 +125,15 @@ protected:
 			GroupName[4] = '\0';
 
 		}
+		ObjGroup(int id, const char *name)
+		{
+			ID = id;
+			strcpy(GroupName, name);
+			GrpBBMax = -99999;
+			GrpBBMin = 99999;
+			ID = MaterialID = RangeStart = RangeEnd = 0;
+			MaterialReference[0] = '\0';
+		}
 		void resetMaxMin(void)
 		{
 			GrpBBMax = -99999;
@@ -178,6 +187,12 @@ protected:
 			MaterialName[0] = '\0';
 		}
 	};
+
+	void setBB(float x, float y, float z, ObjGroup *group);
+	void parseFaceX(List<uint32> *vertexIndexes, List<uint32> *unused, List<uint32> *unused2);				//'unused' so we can use function pointers to not use a if inside a loop everytime
+	void parseFaceXY(List<uint32> *vertexIndexes, List<uint32> *uvIndexes, List<uint32> *unused2);
+	void parseFaceXYZ(List<uint32> *vertexIndexes, List<uint32> *uvIndexes, List<uint32> *normalIndexes);
+	void parseFaceXZ(List<uint32> *vertexIndexes, List<uint32> *normalIndexes, List<uint32> *unused);
 public:	
 	ObjLoader(void);																		//Don't construct, only prepares (Used for global object. MUST USE "load(ObjPath)" method)
 	ObjLoader(char *Filename);																//Constructs, loading a object from a file
@@ -186,6 +201,8 @@ public:
 	mwVec3f* getVertData(void){ return VertexData; };										//Return a array of Vec3 that contains the vertex data
 	mwVec3f getObjectBBMax(void){ return ObjBBMax; };										//Return the Object's Max Bounding Box values
 	mwVec3f getObjectBBMin(void){ return ObjBBMax; };										//Return the Object's Min Bounding Box values
+	mwVec3f getObjectBBMaxPosition(void){return ObjBBMax + ObjPosition;};					//Return the Object's Max Bounding Box positions
+	mwVec3f getObjectBBMinPosition(void){return ObjBBMin + ObjPosition;};					//Return the Object's Min Bounding Box positions
 	mwVec3f getGroupBBMax(uint16 GroupIndex){ return Groups[GroupIndex].GrpBBMax; };		//Return the Group's Max Bounding Box values
 	mwVec3f getGroupBBMin(uint16 GroupIndex){ return Groups[GroupIndex].GrpBBMin; };		//Return the Group's Min Bounding Box values
 	mwVec3f getObjectCenter(void){ return ObjCenter; };										//Return the object center (Vec3)
@@ -195,6 +212,8 @@ public:
 	mwVec3f getGroupPosition(uint16 GroupIndex){ return Groups[GroupIndex].GrpPosition; };	//Return the Group position (Vec3)
 	mwVec3f getGroupRotation(uint16 GroupIndex){ return Groups[GroupIndex].GrpRotation; };	//Return the Group rotation (Vec3)
 	bool haveGroups(void){ return have_groups; };											//The object have groups?
+	bool isPointInsideBB(mwVec3f Point);													//Returns true if 'Point' is inside the central Bounding Box of the object
+	bool isPointInsideBBGroup(mwVec3f Point, uint16 GroupIndex);							//Returns true if 'Point' is inside the central Bounding Box of the object
 	int getMaterialAmount(void){ return MaterialAmount; };									//Return the amount of materials this object have
 	int getVertAmount(void){ return VertexAmount; };										//Return the amount of vertexes
 	int getFaceAmount(void){ return FacesAmount; };											//Return the amount of faces
@@ -263,7 +282,7 @@ private:
 	uint32 *NormalsIndices;											//Stores the indices for the NormalsData array
 	uint32 *UVIndices;												//Stores the indices for the UVData array
 	mwVec3f *VertexData;											//The actual vertex data
-	mwVec2f *UVData;												//UV a.k.a texture coordinates
+	mwVec3f *UVData;												//UV a.k.a texture coordinates
 	mwVec3f *NormalsData;											//Face Normals
 	MaterialData *Materials;										//Stores the material data
 	String64 *TextureFilename;										//The textures path. Already checked against duplicates and used to gerenate them

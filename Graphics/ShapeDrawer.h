@@ -31,12 +31,12 @@ enum ShapeDrawModes
 	SHAPE_DRAW_FULL			//Draw as a full polygon
 };
 
-inline void glColorRGBPalette(RGBColorPalette &Pal)
+inline void glColorRGBPalette(Pixel &Pal)
 {
 	glColor3ub(Pal.getRed(), Pal.getGreen(), Pal.getBlue());
 }
 
-inline void glColorRGBAPalette(RGBAColorPalette &Pal)
+inline void glColorRGBAPalette(Pixel &Pal)
 {
 	glColor4ub(Pal.getRed(), Pal.getGreen(), Pal.getBlue(), Pal.getAlpha());
 }
@@ -130,7 +130,7 @@ void drawVecSetOf(uint32 Mode, Vec *input, uint32 size)
 }
 
 template <class Vec>
-void drawVecSetOf(uint32 Mode, RGBAColorPalette *Palletes, Vec *input, uint32 size)
+void drawVecSetOf(uint32 Mode, Pixel *Palletes, Vec *input, uint32 size)
 {
 	glBegin(Mode);
 	for(int i = 0; i < size; i++)
@@ -170,7 +170,7 @@ void drawMesh(Mesh *input)
 	glPolygonMode(GL_FRONT, GL_FILL);
 }
 
-void drawMesh(Mesh *input, RGBColorPalette *Palletes)
+void drawMesh(Mesh *input, Pixel *Palletes)
 {
 	glPolygonMode(GL_FRONT, GL_LINE);
 	for(uint32 i = 0; i < input->getWidth() - 1; i++)

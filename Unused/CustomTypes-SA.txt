@@ -30,3 +30,74 @@ protected:
 	//	CurrentWorkWr = TargetTwin;
 	//}
 };
+
+// !! MARKED FOR DELETION !!
+////Color Palette for color data (either separated as 4 uint8 or a single uint32)
+////Holds all colors, with Alpha controls
+//class RGBAPixel : public Pixel
+//{
+//public:
+//	void setColorsFromPalette(RGBAPixel &Palette)
+//	{
+//		Color.Col = Palette.getColorsAsUInt32();
+//	}
+//	void setColorsFromPalette(Pixel &Palette)
+//	{
+//		Color.Col = Palette.getColorsAsUInt32();
+//	}
+//	bool compare(RGBAPixel &Palette)
+//	{
+//		return Color.Col == Palette.getColorsAsUInt32();
+//	}
+//	bool compare(Pixel &Palette)
+//	{
+//		return (Color.Comps[0] == Palette.getRed() && Color.Comps[1] == Palette.getGreen() && Color.Comps[2] == Palette.getBlue());
+//	}
+//	bool compare(const uint32 Colors)
+//	{
+//		return Color.Col == Colors;
+//	}
+//
+//	uint32 getColorsAsUInt32(void)
+//	{
+//		//uint32 Out = (getAlpha() << 0) | (getBlue() << 8) | (getGreen() << 16) | (getRed() << 24);
+//		return Color.Col;
+//	}
+//	void setColorsFromUInt32(const uint32 Colors)
+//	{
+//		Color.Col = Colors;
+//	}
+//	void setColorsFromUint8(const uint8* Colors)
+//	{
+//		Color.Comps[0] = Colors[0];
+//		Color.Comps[1] = Colors[1];
+//		Color.Comps[2] = Colors[2];
+//		Color.Comps[3] = Colors[3];
+//	}
+//
+//	bool operator==(RGBAPixel &Pal)
+//	{
+//		return compare(Pal);
+//	}
+//	bool operator!=(RGBAPixel &Pal)
+//	{
+//		return !compare(Pal);
+//	}
+//	bool operator==(Pixel &Pal)
+//	{
+//		return compare(Pal);
+//	}
+//	bool operator!=(Pixel &Pal)
+//	{
+//		return !compare(Pal);
+//	}
+//
+//	static float weight(const uint8 Red, const uint8 Green, const uint8 Blue, const uint8 Alpha)
+//	{
+//		return (float)(Red + Green + Blue + Alpha) / 1020;
+//	}
+//	static float weight(const RGBAPixel &Palette)
+//	{
+//		return (float)(Palette.getRed() + Palette.getGreen() + Palette.getBlue() + Palette.getAlpha()) / 1020;
+//	}
+//};

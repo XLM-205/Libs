@@ -16,7 +16,7 @@
 
 //TODO: Delta for frame drop calculations
 
-#include <GL\glut.h>
+#include <GL\freeglut.h>
 #include <sstream>
 #include <time.h>
 
@@ -55,7 +55,7 @@ GLfloat PosZ				= 0;						//Position Z for the counter
 GLfloat R					= 0;						//Red Color for the counter
 GLfloat G					= 0;						//Green Color for the counter
 GLfloat B					= 0;						//Blue Color for the counter
-String8 FrameCountType		= 0;
+String32 FrameCountType		= 0;
 MWGLContext *RefWindow = nullptr;
 int CallDiference[2] = { 0, 0 };						//Used in debug mode
 bool DrawFPS				= false;					//Draw FPS? true for yes, false for no
@@ -65,8 +65,8 @@ bool FixTimeStep			= false;					//Try to fix the time step?
 bool DebugModeActive		= false;					//If true, each second the library will print on the console data about it's actions
 bool TimeStepDelta			= false;					//If true, the time step will be delta-time variable. If false (default), it will update at a fixed time step
 bool ExternalWindow			= false;					//If true, then we are drawing in a externally created window (GLUT and similiars)
-static char *Text;
-static char *FPSDraw;
+char *Text = nullptr;
+char *FPSDraw = nullptr;
 
 //Debug functions
 static int d_timedUpdates = 0;
@@ -845,7 +845,7 @@ void fpsTextSize(void)
 	{
 
 	}
-	i += CST_DIGITS_INT32;
+	i += CST_DIGITS_INT32 + 6;
 	if (FPSDrawType == FPS_TYPE_SCREEN)
 	{
 		FPSDraw = (char*)malloc(sizeof(char) * i);
@@ -853,6 +853,14 @@ void fpsTextSize(void)
 	else
 	{
 		FPSDraw = (char*)malloc(sizeof(char) * (i + 8));
+	}
+}
+
+void fpsClear(void)
+{
+	if(FPSDraw)
+	{
+		free(FPSDraw);
 	}
 }
 

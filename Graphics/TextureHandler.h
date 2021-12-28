@@ -19,7 +19,7 @@
 
 //TODO: Add support for MWI, for multi API deployment
 
-#include "..\Control\ThreadController.h"
+//#include "..\Control\ThreadController.h"
 
 struct TextureInfo : public FileStates
 {
@@ -50,8 +50,8 @@ struct TextureInfo : public FileStates
 uint32 MWTHLoadTexture(char *Filename);				//Generates the texture and return it's pointer
 TextureInfo MWTHInfoLoadTexture(char *Filename);	//Generates the texture and return additional data about it
 
-uint32 MWTHLoadTextureEx(char *Filename, ThreadController *TGT);			//Generates the texture and return it's pointer and sets a ThreadController Pointer
-TextureInfo MWTHInfoLoadTextureEx(char *Filename, ThreadController *TGT);	//Generates the texture and return additional data about it and sets a ThreadController Pointer
+//uint32 MWTHLoadTextureEx(char *Filename, ThreadController *TGT);			//Generates the texture and return it's pointer and sets a ThreadController Pointer
+//TextureInfo MWTHInfoLoadTextureEx(char *Filename, ThreadController *TGT);	//Generates the texture and return additional data about it and sets a ThreadController Pointer
 
 #elif _API_DX			//If is DirectX, use this instead
 

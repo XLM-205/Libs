@@ -16,13 +16,14 @@
 #define _H_MWGLSTARTER_
 //Moon Wiz GL Starter -> A.K.A MWGLS
 
-#include "..\Control\Igniter.h"
+//#include "..\Control\Igniter.h"
 #include "..\Control\MessageBoxHandler.h"
 #include "..\Control\InputHandler.h"
 #include "..\Maths\Vec2d.h"
 
 #define MWGLS_DEMO_LINE_COORDS	//IF defined, display lines going from the center to each corner in faint orange
 //#define MWGLS_DEMO_TEST		//If defined, display a triangle on the screen, to test the rendering window
+#define MWGLS_GL_BASIC
 
 #ifdef MWGLS_DIRECTX
 	#pragma message ("[MWGLS] -> Starting Up with DirectX configuration")
@@ -33,10 +34,10 @@
 		#ifndef MWGLS_GL_BASIC
 		#pragma comment(lib, "glew32.lib")		//Extension Wangler
 		#endif
-	#pragma comment(lib, "opengl32.lib")		//OpenGL default library
+	//#pragma comment(lib, "opengl32.lib")		//OpenGL default library
 	
-	#include <GL\GL.h>
-	#include <GL\GLU.h>
+	#include <gl\GL.h>
+	#include <gl\GLU.h>
 #endif
 
 //#error [MWGLS][INIT] -> No Graphical Mode Defined! Define either 'MWGLS_OPENGL' or 'MWGLS_DIRECTX'

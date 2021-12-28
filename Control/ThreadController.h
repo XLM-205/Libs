@@ -17,7 +17,6 @@
 #include <thread>
 #include <future>
 #include "DataTypes.h"
-#include "CustomTypes-SA.h"
 
 enum ThreadStatus
 {
@@ -49,6 +48,7 @@ private:
 
 public:
 	ThreadBase() : m_thread() { }
+	ThreadBase(std::thread *thread) : m_thread(thread) { }
 
 	~ThreadBase() 
 	{
@@ -111,7 +111,5 @@ inline void ThreadBase<void, void*>::Run(void* &arg)
 {
 	m_func(arg);
 }
-
-
 
 #endif;	//Header

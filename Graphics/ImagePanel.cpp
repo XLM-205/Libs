@@ -12,6 +12,8 @@
 */
 
 #include <stdio.h>
+#include <GL\freeglut.h>
+
 #include "ImagePanel.h"
 #include "TextureHandler.h"
 
@@ -128,10 +130,10 @@ void ImagePanel::buildNormalData(void)
 {
 	if (have_normals)
 	{
-		PanelNormals[0]._X = 1;
+		PanelNormals[0].setValues(1, 1, 1);
 		if (!is_panelSingleFace)
 		{
-			PanelNormals[1]._X = -1;
+			PanelNormals[1].setValues(-1, -1, -1);
 		}
 		is_normalsBuilt = true;
 	}
@@ -311,6 +313,26 @@ bool ImagePanel::detectClick(mwVec2f &MousePos)
 	}
 }
 
+void ImagePanel::setRotation(float Yaw, float Roll, float Pitch)
+{
+	Rotation.setValues(Yaw, Roll, Pitch);
+}
+
+void ImagePanel::setRotation(mwVec3f &Rot)
+{
+	Rotation = Rot;
+}
+
+void ImagePanel::setRotationAxis(float Yaw, float Roll, float Pitch)
+{
+	RotationAxis.setValues(Yaw, Roll, Pitch);
+}
+
+void ImagePanel::setRotationAxis(mwVec3f &Rot)
+{
+	RotationAxis = Rot;
+}
+
 void ImagePanel::drawPanel(void)
 {
 	if (!is_normalsBuilt)
@@ -332,6 +354,7 @@ void ImagePanel::drawPanel(void)
 				{
 					glBindTexture(GL_TEXTURE_2D, Texture[0]);
 				}
+				//glBegin(GL_LINE_LOOP);
 				glBegin(GL_TRIANGLE_STRIP);
 				//Texture mapping sequence: LT -> RT -> LB -> RB
 				//L = Left | R = Right | T = Top | B = Bottom
@@ -341,26 +364,34 @@ void ImagePanel::drawPanel(void)
 					{
 						glTexCoord2fv(Orient[PanelOrientation[0]][0]);
 						//Min X / Max Y
+						glNormal3f(PanelNormals[0]._X, PanelNormals[0]._Y, PanelNormals[0]._Z);	// Doesn't work if we set PA and PB as X, 0, Z pair
 						glVertex3f(PointA._X, PointA._Y, PointA._Z);
 						glTexCoord2fv(Orient[PanelOrientation[0]][1]);
 						//Max X / Max Y
+						glNormal3f(PanelNormals[0]._X, PanelNormals[0]._Y, PanelNormals[0]._Z);
 						glVertex3f(PointB._X, PointA._Y, PointA._Z);
 						glTexCoord2fv(Orient[PanelOrientation[0]][2]);
 						//Min X / Min Y
+						glNormal3f(PanelNormals[0]._X, PanelNormals[0]._Y, PanelNormals[0]._Z);
 						glVertex3f(PointA._X, PointB._Y, PointA._Z);
 						glTexCoord2fv(Orient[PanelOrientation[0]][3]);
 						//Max X / Min Y
+						glNormal3f(PanelNormals[0]._X, PanelNormals[0]._Y, PanelNormals[0]._Z);
 						glVertex3f(PointB._X, PointB._Y, PointA._Z);
 					}
 					else
 					{
 						glTexCoord2fv(Orient[PanelOrientation[0]][0]);
+						glNormal3f(PanelNormals[0]._X, PanelNormals[0]._Y, PanelNormals[0]._Z);
 						glVertex3f(PointB._X, PointA._Y, PointA._Z);
 						glTexCoord2fv(Orient[PanelOrientation[0]][1]);
+						glNormal3f(PanelNormals[0]._X, PanelNormals[0]._Y, PanelNormals[0]._Z);
 						glVertex3f(PointA._X, PointA._Y, PointA._Z);
 						glTexCoord2fv(Orient[PanelOrientation[0]][2]);
+						glNormal3f(PanelNormals[0]._X, PanelNormals[0]._Y, PanelNormals[0]._Z);
 						glVertex3f(PointB._X, PointB._Y, PointA._Z);
 						glTexCoord2fv(Orient[PanelOrientation[0]][3]);
+						glNormal3f(PanelNormals[0]._X, PanelNormals[0]._Y, PanelNormals[0]._Z);
 						glVertex3f(PointA._X, PointB._Y, PointA._Z);
 					}
 
@@ -375,23 +406,31 @@ void ImagePanel::drawPanel(void)
 						if (is_flipped)
 						{
 							glTexCoord2fv(Orient[PanelOrientation[1]][0]);
+							glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 							glVertex3f(PointA._X, PointA._Y, PointB._Z);
 							glTexCoord2fv(Orient[PanelOrientation[1]][1]);
+							glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 							glVertex3f(PointB._X, PointA._Y, PointB._Z);
 							glTexCoord2fv(Orient[PanelOrientation[1]][2]);
+							glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 							glVertex3f(PointA._X, PointB._Y, PointB._Z);
 							glTexCoord2fv(Orient[PanelOrientation[1]][3]);
+							glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 							glVertex3f(PointB._X, PointB._Y, PointB._Z);
 						}
 						else
 						{
 							glTexCoord2fv(Orient[PanelOrientation[1]][0]);
+							glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 							glVertex3f(PointB._X, PointA._Y, PointB._Z);
 							glTexCoord2fv(Orient[PanelOrientation[1]][1]);
+							glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 							glVertex3f(PointA._X, PointA._Y, PointB._Z);
 							glTexCoord2fv(Orient[PanelOrientation[1]][2]);
+							glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 							glVertex3f(PointB._X, PointB._Y, PointB._Z);
 							glTexCoord2fv(Orient[PanelOrientation[1]][3]);
+							glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 							glVertex3f(PointA._X, PointB._Y, PointB._Z);
 						}
 						glEnd();
@@ -404,23 +443,31 @@ void ImagePanel::drawPanel(void)
 						if (is_flipped)
 						{
 							glTexCoord2fv(Orient[PanelOrientation[0]][0]);
+							glNormal3f(PanelNormals[0]._X, PanelNormals[0]._Y, PanelNormals[0]._Z);
 							glVertex3f(PointA._X, PointA._Y, PointA._Z);
 							glTexCoord2fv(Orient[PanelOrientation[0]][1]);
+							glNormal3f(PanelNormals[0]._X, PanelNormals[0]._Y, PanelNormals[0]._Z);
 							glVertex3f(PointB._X * XRatio, PointA._Y, PointA._Z);
 							glTexCoord2fv(Orient[PanelOrientation[0]][2]);
+							glNormal3f(PanelNormals[0]._X, PanelNormals[0]._Y, PanelNormals[0]._Z);
 							glVertex3f(PointA._X, PointB._Y * YRatio, PointA._Z);
 							glTexCoord2fv(Orient[PanelOrientation[0]][3]);
+							glNormal3f(PanelNormals[0]._X, PanelNormals[0]._Y, PanelNormals[0]._Z);
 							glVertex3f(PointB._X * XRatio, PointB._Y * YRatio, PointA._Z);
 						}
 						else
 						{
 							glTexCoord2fv(Orient[PanelOrientation[0]][0]);
+							glNormal3f(PanelNormals[0]._X, PanelNormals[0]._Y, PanelNormals[0]._Z);
 							glVertex3f(PointB._X, PointA._Y * YRatio, PointA._Z);
 							glTexCoord2fv(Orient[PanelOrientation[0]][1]);
+							glNormal3f(PanelNormals[0]._X, PanelNormals[0]._Y, PanelNormals[0]._Z);
 							glVertex3f(PointA._X * XRatio, PointA._Y * YRatio, PointA._Z);
 							glTexCoord2fv(Orient[PanelOrientation[0]][2]);
+							glNormal3f(PanelNormals[0]._X, PanelNormals[0]._Y, PanelNormals[0]._Z);
 							glVertex3f(PointB._X, PointB._Y, PointA._Z);
 							glTexCoord2fv(Orient[PanelOrientation[0]][3]);
+							glNormal3f(PanelNormals[0]._X, PanelNormals[0]._Y, PanelNormals[0]._Z);
 							glVertex3f(PointA._X * XRatio, PointB._Y, PointA._Z);
 						}
 
@@ -435,23 +482,31 @@ void ImagePanel::drawPanel(void)
 							if (is_flipped)
 							{
 								glTexCoord2fv(Orient[PanelOrientation[1]][0]);
+								glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 								glVertex3f(PointA._X, PointA._Y, PointA._Z);
 								glTexCoord2fv(Orient[PanelOrientation[1]][1]);
+								glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 								glVertex3f(PointB._X * XRatio, PointA._Y, PointA._Z);
 								glTexCoord2fv(Orient[PanelOrientation[1]][2]);
+								glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 								glVertex3f(PointA._X, PointB._Y * YRatio, PointA._Z);
 								glTexCoord2fv(Orient[PanelOrientation[1]][3]);
+								glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 								glVertex3f(PointB._X * XRatio, PointB._Y * YRatio, PointA._Z);
 							}
 							else
 							{
 								glTexCoord2fv(Orient[PanelOrientation[1]][0]);
+								glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 								glVertex3f(PointB._X * XRatio, PointA._Y, PointA._Z);
 								glTexCoord2fv(Orient[PanelOrientation[1]][1]);
+								glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 								glVertex3f(PointA._X, PointA._Y, PointA._Z);
 								glTexCoord2fv(Orient[PanelOrientation[1]][2]);
+								glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 								glVertex3f(PointB._X * XRatio, PointB._Y * YRatio, PointA._Z);
 								glTexCoord2fv(Orient[PanelOrientation[1]][3]);
+								glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 								glVertex3f(PointA._X, PointB._Y * YRatio, PointA._Z);
 							}
 							glEnd();
@@ -493,23 +548,31 @@ void ImagePanel::drawPanel(void)
 							if (is_flipped)
 							{
 								glTexCoord2fv(Orient[PanelOrientation[1]][0]);
+								glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 								glVertex3f(PointA._X * XRatio, PointA._Y * YRatio, PointB._Z);
 								glTexCoord2fv(Orient[PanelOrientation[1]][1]);
+								glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 								glVertex3f(PointB._X * XRatio, PointA._Y * YRatio, PointB._Z);
 								glTexCoord2fv(Orient[PanelOrientation[1]][2]);
+								glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 								glVertex3f(PointA._X * XRatio, PointB._Y * YRatio, PointB._Z);
 								glTexCoord2fv(Orient[PanelOrientation[1]][3]);
+								glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 								glVertex3f(PointB._X * XRatio, PointB._Y * YRatio, PointB._Z);
 							}
 							else
 							{
 								glTexCoord2fv(Orient[PanelOrientation[1]][0]);
+								glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 								glVertex3f(PointB._X * XRatio, PointA._Y * YRatio, PointB._Z);
 								glTexCoord2fv(Orient[PanelOrientation[1]][1]);
+								glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 								glVertex3f(PointA._X * XRatio, PointA._Y * YRatio, PointB._Z);
 								glTexCoord2fv(Orient[PanelOrientation[1]][2]);
+								glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 								glVertex3f(PointB._X * XRatio, PointB._Y * YRatio, PointB._Z);
 								glTexCoord2fv(Orient[PanelOrientation[1]][3]);
+								glNormal3f(PanelNormals[1]._X, PanelNormals[1]._Y, PanelNormals[1]._Z);
 								glVertex3f(PointA._X * XRatio, PointB._Y * YRatio, PointB._Z);
 							}
 							glEnd();
@@ -697,11 +760,11 @@ void ImagePanel::loadPanelImage(char *ImagePath)
 		if (!is_panelBuilt)
 		{
 			TextureInfo TempConverter;
-			if (ExtThrdCtrl != NULL)
+			/*if (ExtThrdCtrl != NULL)
 			{
 				TempConverter = MWTHInfoLoadTextureEx(ImagePath, ExtThrdCtrl);
 			}
-			else
+			else*/
 			{
 				TempConverter = MWTHInfoLoadTexture(ImagePath);
 			}
@@ -715,16 +778,16 @@ void ImagePanel::loadPanelImage(char *ImagePath)
 				is_panelBuilt = true;
 				computeRatio(MWIP_SIDE_FRONT);
 			}
-			if (flstState == -2)
+			if (m_stateCode == FileStatus::FS_ERROR_NO_PATH)
 			{
-				flstStateWr = MWIP_WR_ERROR_INVALID_PATH;
+				m_state->setString(MWIP_WR_ERROR_INVALID_PATH);
 			}
 		}
 	}
 	else
 	{
-		flstState = MWIP_ERROR_NO_PATH;
-		flstStateWr = MWIP_WR_ERROR_NO_PATH;
+		m_stateCode = FileStatus::FS_ERROR_NO_PATH;
+		m_state->setString(MWIP_WR_ERROR_NO_PATH);
 	}
 }
 
@@ -739,11 +802,11 @@ void ImagePanel::loadPanelImage(char *ImagePath, uint8 Side)	//!! WIP !! make an
 			switch (Side)
 			{
 			case MWIP_SIDE_BACK:
-				if (ExtThrdCtrl != NULL)
+				/*if (ExtThrdCtrl != NULL)
 				{
 					TempConverter = MWTHInfoLoadTextureEx(ImagePath, ExtThrdCtrl);
 				}
-				else
+				else*/
 				{
 					TempConverter = MWTHInfoLoadTexture(ImagePath);
 				}
@@ -753,11 +816,11 @@ void ImagePanel::loadPanelImage(char *ImagePath, uint8 Side)	//!! WIP !! make an
 				break;
 			case MWIP_SIDE_FRONT:
 			default:
-				if (ExtThrdCtrl != NULL)
+				/*if (ExtThrdCtrl != NULL)
 				{
 					TempConverter = MWTHInfoLoadTextureEx(ImagePath, ExtThrdCtrl);
 				}
-				else
+				else*/
 				{
 					TempConverter = MWTHInfoLoadTexture(ImagePath);
 				}
@@ -772,16 +835,16 @@ void ImagePanel::loadPanelImage(char *ImagePath, uint8 Side)	//!! WIP !! make an
 				is_panelBuilt = true;
 				computeRatio(Side);
 			}
-			if (flstState == -2)
+			if (m_stateCode == FileStatus::FS_ERROR_NO_PATH)
 			{
-				flstStateWr = MWIP_WR_ERROR_INVALID_PATH;
+				m_state->setString(MWIP_WR_ERROR_INVALID_PATH);
 			}
 		}
 	}
 	else
 	{
-		flstState = MWIP_ERROR_NO_PATH;
-		flstStateWr = MWIP_WR_ERROR_NO_PATH;
+		m_stateCode = FileStatus::FS_ERROR_NO_PATH;
+		m_state->setString(MWIP_WR_ERROR_NO_PATH);
 	}
 }
 
@@ -797,16 +860,16 @@ void ImagePanel::loadPanelImage(char *ImagePath1, char *ImagePath2)
 			Texture[MWIP_SIDE_BACK] = MWTHLoadTexture(ImagePath2);
 			computeRatio(MWIP_SIDE_BACK);
 			computeRatio(MWIP_SIDE_FRONT);
-			if (flstState == -2)
+			if (m_stateCode == FileStatus::FS_ERROR_NO_PATH)
 			{
-				flstStateWr = MWIP_WR_ERROR_INVALID_PATH;
+				m_state->setString(MWIP_WR_ERROR_INVALID_PATH);
 			}
 		}
 	}
 	else
 	{
-		flstState = MWIP_ERROR_NO_PATH;
-		flstStateWr = MWIP_WR_ERROR_NO_PATH;
+		m_stateCode = FileStatus::FS_ERROR_NO_PATH;
+		m_state->setString(MWIP_WR_ERROR_NO_PATH);
 	}
 }
 
@@ -1028,25 +1091,29 @@ void ImagePanel::setSize(uint16 XScale, uint16 YScale)
 
 void ImagePanel::setTexturePointer(uint8 Tex, uint8 Side)
 {
-	Texture[Side] = Tex;
-	is_panelBuilt = true;
+	if(Tex > 0)
+	{
+		Texture[Side] = Tex;
+		is_panelBuilt = true;
+		is_textured = true;
+	}
 }
 
-void ImagePanel::setThreadControllerPointer(ThreadController* TGT)
-{
-	if (TGT != NULL)
-	{
-		if (TGT->isControllerReady())
-		{
-			//Controller found and ready!
-			ExtThrdCtrl = TGT;
-		}
-	}
-	else
-	{
-		ExtThrdCtrl = NULL;
-	}
-}
+//void ImagePanel::setThreadControllerPointer(ThreadController* TGT)
+//{
+//	if (TGT != NULL)
+//	{
+//		if (TGT->isControllerReady())
+//		{
+//			//Controller found and ready!
+//			ExtThrdCtrl = TGT;
+//		}
+//	}
+//	else
+//	{
+//		ExtThrdCtrl = NULL;
+//	}
+//}
 
 void ImagePanel::setUVMode(uint8 UVMode)
 {

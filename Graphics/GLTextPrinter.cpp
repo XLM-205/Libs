@@ -24,7 +24,7 @@
 	#include <string.h>
 #endif;
 
-#include <GL\glut.h>
+#include <GL\freeglut.h>
 
 #define MAX_BUFFER_SIZE 128
 

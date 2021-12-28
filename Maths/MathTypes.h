@@ -19,62 +19,12 @@
 //TODO: Implement dependencies from <math.h> to probably make this SA
 //	*Current Dependecies:
 //		-> sqrt()
-#define MATH_ALLOW_UNSAFE	//Allow Unsafe, but faster, procedures
+//#define MATH_ALLOW_UNSAFE	//Allow Unsafe, but faster, procedures
 
 #include "../Control/CustomTypes-SA.h"
+#include "MathTables.h"
 
-namespace Tables
-{
-	//Fatorial table up to 20!. Anything other than [0..20] returns 1;
-	inline uint64 Fatorial(int i)
-	{
-		switch (i)
-		{
-		default:
-		case 0:
-		case 1:
-			return 1;
-		case 2:
-			return 2;
-		case 3:
-			return 6;
-		case 4:
-			return 24;
-		case 5:
-			return 120;
-		case 6:
-			return 720;
-		case 7:
-			return 5040;
-		case 8:
-			return 40320;
-		case 9:
-			return 362880;
-		case 10:
-			return 3628800;
-		case 11:
-			return 39916800;
-		case 12:
-			return 479001600;
-		case 13:
-			return 6227020800;
-		case 14:
-			return 87178291200;
-		case 15:
-			return 1307674368000;
-		case 16:
-			return 20922789888000;
-		case 17:
-			return 355687428096000;
-		case 18:
-			return 6402373705728000;
-		case 19:
-			return 121645100408832000;
-		case 20:
-			return 2432902008176640000;
-		}
-	}
-}
+
 
 namespace Math
 {
@@ -204,7 +154,7 @@ namespace Math
 	}
 	inline double sinRad(double n)
 	{
-		// 10 iteractions seems to match the standard sin by 8 decimal places, AT LEAST
+		// 10 iterations seems to match the standard sin by 8 decimal places, AT LEAST
 		return Math::sinRad(n, 10);
 	}
 	inline double sinDeg(double n)
@@ -557,22 +507,22 @@ public:
 
 	double solveFor(double x)
 	{
-		if (x == 0.0)		//If 'x' is 0 then polinomial also equals to 0
+		int lastEl = m_count - 1;
+		if (x == 0.0)		//If 'x' is 0 then polinomial equals to the last element
 		{
-			return 0;
+			return m_elements[lastEl];
 		}
-		int stop = m_count - 1;
 		double superPow = x;
 		if (m_lastX != x)	//If we have evaluated this same x last time, don't waste CPU doing it again
 		{
 			m_lastX = x;
 			m_lastSolve = 0;
-			for (int i = stop - 1; i >= 0; i--)
+			for (int i = lastEl - 1; i >= 0; i--)
 			{
 				m_lastSolve += m_elements[i] * superPow;
 				superPow *= x;
 			}
-			m_lastSolve += m_elements[stop];
+			m_lastSolve += m_elements[lastEl];
 		}
 		return m_lastSolve;
 	}
@@ -580,7 +530,7 @@ public:
 #ifdef _INC_STDIO	//If <stdio.h> is included, allow print function
 	//'format' must be a valid printf format
 	//'onEnd' is what it should do when finishing printing. Also follows printf rules
-	void print(const char *format, const char *onEnd)
+	void print(const char *format, const char *onEnd, double x)
 	{
 		int power = m_count - 1;
 		for (int i = 0; i < m_count; power--, i++)
@@ -591,11 +541,14 @@ public:
 			}
 			if (power > 1)
 			{
-				printf("X^%d", power);
+				printf("(");
+				printf(format, x);
+				printf("^%d)", power);
 			}
 			else if (power == 1)
 			{
-				printf("X");
+				printf("*");
+				printf(format, x);
 			}
 			if ((i + 1) < m_count && m_elements[i + 1] >= 0)
 			{
@@ -608,14 +561,14 @@ public:
 	void print(double x, const char *format, const char *onEnd)
 	{
 		printf("P(%.2lf) = ", x);
-		print(format, onEnd);
+		print(format, onEnd, x);
 		printf("\t= %.4lf\n", solveFor(x));
 	}
 
 	void print(double x)
 	{
 		printf("P(%.2lf) = ", x);
-		print("%.2lf", "\n");
+		print("%.2lf", "\n", x);
 		printf("\t= %.4lf\n", solveFor(x));
 	}
 #endif

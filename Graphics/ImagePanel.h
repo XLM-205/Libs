@@ -17,10 +17,8 @@
 
 #include "..\Maths\Vec3d.h"
 #include "..\Control\CustomTypes-SA.h"
-#include "..\Control\ThreadController.h"
+//#include "..\Control\ThreadController.h"
 #include "..\Control\FileStates.h"
-
-#include <gl\freeglut.h>
 
 //Faces & Sides
 #define MWIP_FACE_SINGLE_SIDE				0		//Panel will have only one visible side (default)
@@ -162,7 +160,7 @@ public:
 	void setSize(mwVec3f &Point1, mwVec3f &Point2);													//Set the panel size (vec3)
 	void setSize(uint16 XScale, uint16 YScale);														//Set the panel size
 	void setTexturePointer(uint8 TexPointer, uint8 Side);											//Sets a new pointer to use as texture
-	void setThreadControllerPointer(ThreadController* TGT);											//Sets the thread controller instance pointer
+	//void setThreadControllerPointer(ThreadController* TGT);											//Sets the thread controller instance pointer
 	void setUVMap(mwVec2f &UVA, mwVec2f &UVB);														//Set the UV the panel will use to map the texture (vec2)
 	void setUVMap(float UVAX, float UVAY, float UVBX, float UVBY);									//Set the UV the panel will use to map the texture
 	void setUVMode(uint8 UVMode);																	//Set the current UV mode
@@ -202,7 +200,7 @@ protected:
 	float YRatio;							//The Y ratio (e.g.: 16 / 9Y)
 	float Orient[4][4][2];					//UV Data holder
 	uint32 Texture[2];						//Texture data. Slot [0] for front side and [1] for back
-	ThreadController* ExtThrdCtrl = NULL;	//External Thread Controller Pointer, to allow multi-thread reading on the ImageLoader. If != NULL, the pointer ill be sent
+	//ThreadController* ExtThrdCtrl = NULL;	//External Thread Controller Pointer, to allow multi-thread reading on the ImageLoader. If != NULL, the pointer ill be sent
 	mwVec2f UVA;							//UV Coordinates. Represent the bottom left of the image (min)
 	mwVec2f UVB;							//UV Coordinates. Represent the top right of the image (max)
 	mwVec3f PointA;							//Max position of the panel (left upper vertex)

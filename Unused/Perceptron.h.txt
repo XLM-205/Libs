@@ -1,0 +1,166 @@
+//	void TrainNetworkNew(double expected, double learningRate)
+//	{
+//		Execute();						//Runs the network. All outputs should have been calculated after that
+//		NeuronBase *neuron = nullptr;
+//		double error = m_MLN[m_outputLayer].getNeuron(0)->ComputeError(expected);
+//		double outputGrad = error * m_MLN[m_outputLayer].getNeuron(0)->Derivative();
+//		//Setting up output layer error and gradients
+//		for(int i = 0; i < m_MLN[m_outputLayer].getNeuronAmount(); i++)	//Iterates all neurons from the output layer
+//		{
+//			neuron = m_MLN[m_outputLayer].getNeuron(i);				//Get a neuron
+//			for(int j = 1; j < neuron->getSinapseAmount(); j++)		//Fill the gradient of the layer before, using references from 'this' layer
+//			{
+//				//Gradient of each input 'Xi' of the output laye, is the derivative of the result of 'Xi' times 'outputGrad' times the weight of 'Xi'
+//				neuron->setSinapseGradient(neuron->getSinapseInput(j) * outputGrad, j);
+//			}
+//			neuron->setBiasGradient(outputGrad);					//Bias
+//		}
+//		//Setting gradient for hidden layers
+//		for(int i = m_outputLayer - 1; i >= 0; i--)
+//		{
+//			for(int j = 0; j < m_MLN[i].getNeuronAmount(); j++)
+//			{
+//				neuron = m_MLN[i].getNeuron(j);
+//				for(int k = 0; k < neuron->getSinapseAmount(); k++)
+//				{
+////TODO				// Value of '0' is temporary
+//					//m_MLN[i].setGradient(/*m_MLN[i].getGradient(j, k) + */neuron->Derivative() * neuron->getSinapseWeight(k) * m_MLN[i + 1].getGradient(0, k), j, k);
+//					neuron->setSinapseGradient(neuron->getSinapseInput(k) * m_MLN[i + 1].getGradient(0, k), k);
+//				}
+//				neuron->setBiasGradient(m_MLN[i + 1].getGradient(0, 0) * neuron->getBiasWeight());
+//			}
+//		}
+//		//Weight updating for the output
+//		for(int i = 0; i < m_MLN[m_outputLayer].getNeuronAmount(); i++)
+//		{
+//			neuron = m_MLN[m_outputLayer].getNeuron(i);
+//			//For each source of data (bias and inputs)
+//			for(int j = 1; j < neuron->getSinapseAmount(); j++)
+//			{
+//				neuron->setSinapseWeight(neuron->getSinapseWeight(j) - neuron->getSinapseInput(j) * learningRate * outputGrad, j);
+//			}
+//			neuron->setBiasWeight(neuron->getBiasWeight() - outputGrad * learningRate);
+//		}
+//		//Weight update for the rest of the network
+//		for(int i = m_outputLayer - 1; i >= 0; i--)
+//		{
+//			for(int j = 0; j < m_MLN[i].getNeuronAmount(); j++)
+//			{
+//				neuron = m_MLN[i].getNeuron(j);
+//				//neuron->setBiasWeight(neuron->getBiasWeight() + learningRate);
+//				for(int k = 1; k < neuron->getSinapseAmount(); k++)
+//				{
+//					neuron->setSinapseWeight(neuron->getSinapseWeight(k) - neuron->getSinapseInput(k) * learningRate * neuron->getSinapseGradient(k), k);
+//				}
+//				neuron->setBiasWeight(neuron->getBiasWeight() - neuron->getBiasGradient() * learningRate);
+//				//if(i == 0)
+//				//{
+//				//	for(int k = 1; k < neuron->getSinapseAmount(); k++)
+//				//	{
+//				//		neuron->setSinapseWeight(neuron->getSinapseWeight(k) + (neuron->getSinapseInput(k) * neuron->getSinapseGradient(k)) * learningRate, k);
+//				//	}
+//				//}
+//				//else
+//				//{
+//				//	for(int k = 0; k < neuron->getSinapseAmount(); k++)
+//				//	{
+//				//		//This might be wrong
+//				//		neuron->setSinapseWeight(neuron->getSinapseWeight(k) + (neuron->getOutput() * neuron->getSinapseGradient(k)) * learningRate, k);
+//				//		//neuron->setInputWeight(neuron->getWeight(k) + m_MLN[i].getGradient(j, k + 1) * learningRate, k);
+//				//	}
+//				//}
+//				//neuron->setBiasWeight(neuron->getBiasWeight() + m_MLN[i].getGradient(j, 0) * learningRate);
+//			}
+//		}
+//	}
+//
+//	//The error propagates back, from the outputs and beyond the hidden layers, each serving as a 'part' of the complete error
+//	//			in1	----(A)--(C)--(E)	
+//	//			  in2 __/  \ /  \ /  \
+//	//					    x	 x	 (G)-- Out
+//	//			  in1 --\  / \  / \  /
+//	//			in2	----(B)--(D)--(F)	
+//	//						  h1   h2
+//	//	* G produces the Error for E and F (Ge)
+//	//	* E error is Ge * the weight used for E (Ge * wEG). F as well
+//	//	* Ce = wCe * Ee + wCF + Fe, and so on
+//	//	* Each neuron new Weight is: w' = w + LR * Err * input
+//	void TrainNetwork(double expected, double learningRate)
+//	{
+//		Execute();					//Executes the whole network	
+//		double outputGrad = 0.0;			//Holder for (expected - Yo) * d/dx(Yo). TODO: Make this an array for multiple output neurons
+//		double partialSum = 0.0;	//Holds the sum of elements before the multiplication by the previous layer output. Used for bias calculation
+//		double Dif = 0.0;			//Debug: Monitoring weight change
+//		double error = 0;
+//		NeuronBase *neuron = nullptr;
+//		//Making the output layer error
+//		//for (int i = 0; i < m_MLN[m_outputLayer].getNeuronAmount(); i++)
+//		{
+//			int i = 0;		//Temporary. Change it to the for loop 
+//			neuron = m_MLN[m_outputLayer].getNeuron(i);
+//			//neuron->setErrorDelta(expected - neuron->Result());
+//			error = expected - neuron->Result();
+//			outputGrad = error * neuron->Derivative();
+//			for (int j = 0; j < neuron->getInputAmount(); j++)	//REMAKE
+//			{
+//				Dif = neuron->getInputWeight(j);
+//				//Output layer gradient of the sinapse 'j' from neuron 'i'
+//				m_MLN[m_outputLayer].setGradient(outputGrad * m_MLN[m_outputLayer - 1].Result(j), i, j);
+//				//The new weight is the previous weight + LR * the gradient of this neuron's sinapses, excluding the bias
+//				neuron->updateWeight(learningRate * m_MLN[m_outputLayer].getGradient(i, j), j);
+////				printf("\t[OUTP][N:%2d][I:%2d] Prev.: Weight = %11.8lf\tNew Weight = %11.8lf [Dif: %11.8lf]\n", i, j, Dif, neuron->getWeight(j), neuron->getWeight(j) - Dif);
+//			}
+//			Dif = neuron->getBiasWeight();
+//			//The new bias weight is the previous weight + LR * the gradient of this neuron's sinapses
+//			//neuron->updateWeight(learningRate * outputGrad, 0);
+//			neuron->setBiasWeight(neuron->getBiasWeight() + learningRate * outputGrad);
+////			printf("\t[OUTP][N:%2d][BIAS] Prev.: Weight = %11.8lf\tNew Weight = %11.8lf [Dif: %11.8lf]\n", i, Dif, neuron->getBiasWeight(), neuron->getBiasWeight() - Dif);
+//			//neuron->updateWeights(learningRate, neuron->getErrorDelta());
+//		}
+//
+//		for (int i = m_outputLayer - 1; i >= 0; i--)						//Iterates ALL Layers 
+//		{
+//			for (int j = 0; j < m_MLN[i].getNeuronAmount(); j++)			//Iterates ALL Neurons of the current layer...
+//			{
+//				neuron = m_MLN[i].getNeuron(j);
+//				double tempGrad = outputGrad * neuron->Derivative();
+//				double gradSum = 0.0;	//Sum of gradients of a neuron. Used to compute the bias
+//				//m_MLN[i].setGradient(tempGrad)
+//				for(int k = 0; k < neuron->getInputAmount(); k++)		//...and for each sinapse of this neuron, excluding the bias...
+//				{
+//					for(int l = 0; l < m_MLN[i + 1].getNeuronAmount(); l++)	//...for each neuron on the layer after this...
+//					{
+//						//Set the gradient of sinapse 'k', on layer 'i', to be 'tempGrad' * the weight that the neuron on layer 'i + 1' gives to neuron's 'j' output. Phew...
+//						m_MLN[i].setGradient(tempGrad * m_MLN[i + 1].getNeuron(l)->getInputWeight(j), j, k);
+//					}
+//					//Gradients set, now update weights
+//					Dif = neuron->getInputWeight(k);
+//					neuron->updateWeight(learningRate * m_MLN[i].getGradient(j, k), k);
+//					//neuron->setWeight(neuron->getWeight(k) - learningRate * neuron->getErrorDelta() * neuron->getInput(k), k);
+////					printf("\t[L:%2d][N:%2d][I:%2d] Prev.: Weight = %11.8lf\tNew Weight = %11.8lf [Dif: %11.8lf]\n", i, j, k, Dif, neuron->getWeight(k), neuron->getWeight(k) - Dif);
+//					gradSum += m_MLN[i].getGradient(j, k);
+//					//And now we set the bias
+//				}
+//				Dif = neuron->getBiasWeight();
+//				neuron->setBiasWeight(neuron->getBiasWeight() + learningRate * gradSum);
+////				printf("\t[L:%2d][N:%2d][BIAS] Prev.: Weight = %11.8lf\tNew Weight = %11.8lf [Dif: %11.8lf]\n", i, j, Dif, neuron->getBiasWeight(), neuron->getBiasWeight() - Dif);
+////#ifdef MLP_DEBUG
+////				printf("Neuron [%c%d(n%d)]:\n", (i == 0 ? 'i' : 'h'), i, j);
+////#endif
+////				for (int k = 0; k < m_MLN[i + 1].getNeuronAmount(); k++)	//...against all neurons of the TARGET layer. The 'current' neuron index on the layer+1 determines the input in the target layer
+////				{
+////#ifdef MLP_DEBUG
+////					printf("\t<+--Neuron [%c%d(n%d) on sinapse %d]\n", (i+1 == 0 ? 'i' : (i+1 == m_outputLayer ? 'o' : 'h')), i, k, j+1);
+////#endif
+////					errTot += m_MLN[i + 1].getNeuron(k)->getWeight(j + 1) * m_MLN[i + 1].getErrorDelta(k);
+////				}
+//				//neuron->setErrorDelta((errTot * errTot) / 2); //MSE (Mean Square Error) (Err^2)/2
+//				//neuron->setErrorDelta(-2 * errTot * neuron->Derivative());
+//				// neuron->setErrorDelta(errTot);
+////#ifdef MLP_DEBUG
+////				printf("= %3.8lf\n", neuron->getErrorDelta());
+////#endif
+//				//neuron->updateWeights(learningRate, neuron->getErrorDelta());
+//			}
+//		}
+//	}

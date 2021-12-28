@@ -59,8 +59,7 @@
 //Plataform Especific Libraries
 #ifdef X86
 	#include <FreeImage\Dist\x32\FreeImage.h>
-#endif;
-#ifdef X64
+#elif X64
 	#include <FreeImage\Dist\x64\FreeImage.h>
 #endif;
 
@@ -90,7 +89,7 @@ public:
 	void swapRedBlue(void);										//Swap an image's red and blue colors
 	void fixBMPAlpha(void);										//Detects and fix BMP images that have an alpha channel, but doesn't use it
 	void unloadImage(void);										//Unloads all the data
-	void setThreadControllerPointer(ThreadController* TGT);		//Sets a target thread controller instance
+	//void setThreadControllerPointer(ThreadController* TGT);		//Sets a target thread controller instance
 
 protected:
 	char PreLoadHeader[MAX_PRE_LOAD_BUFFER];					//Pre-loaded header to image file. Used to detect image format
@@ -100,7 +99,7 @@ protected:
 private:
 	FIBITMAP *FIImage = NULL;										//For FreeImage's reading
 	uint8 *FIImageData = NULL;										//Actual FreeImage's data
-	ThreadController *ExternalThrdCtrl = NULL;						//Pointer to an external instance of a Thread Controller. If NOT set to NULL, the ImageLoader will try to use multi-thread reading
+	//ThreadController *ExternalThrdCtrl = NULL;						//Pointer to an external instance of a Thread Controller. If NOT set to NULL, the ImageLoader will try to use multi-thread reading
 	char Resolution[16];											//Image resolution (e.g.: 600 x 800)
 	bool have_Alpha = false;										//Image has alpha channel?
 	bool is_indexed = false;										//Is the image a index/pallete color image?

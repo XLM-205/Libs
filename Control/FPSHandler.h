@@ -111,6 +111,8 @@ void fpsSwitchDebug(void);
 void fpsSetCountMode(uint8 CountMode);
 //Switch current count mode
 void fpsSwitchCountMode(void);
+//Free Memory allocated
+void fpsClear(void);
 
 class fpsTimedEvent
 {

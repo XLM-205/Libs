@@ -11,7 +11,7 @@
 *	YOU MAY use it in any project of your own or edit this file, given the proper credits to Moon Wiz Studios
 *   This notice MAY NOT be removed nor altered from any source distribution
 *
-*	Version 1.8.93
+*	Version 1.9
 */
 
 #ifndef _H_CSTTYPE_
@@ -38,6 +38,11 @@
 #define CST_KEY_DOUBLE_QUOTE	 34					//Keyboard ASCII code for ' " '
 #define CST_KEY_SINGLE_QUOTE	 39					//Keyboard ASCII code for ' ' '
 #define CST_KEY_DELETE			 127				//Keyboard ASCII code for ' Delete '
+//ASCII Console Extented Table Codes
+#define CST_CONSOLE_25_FILL		 176				
+#define CST_CONSOLE_50_FILL		 177
+#define CST_CONSOLE_75_FILL		 178
+#define CST_CONSOLE_100_FILL	 219
 //Variables Limits
 #define CST_INT8_MAX			 127				//Upper Limit for a 1 Byte Signed Integer
 #define CST_UINT8_MAX			 255				//Upper Limit for a 1 Byte (UN) Signed Integer
@@ -60,6 +65,21 @@
 #define CST_DIGITS_UINT16		 5					//Digits WITHOUT minus sign consideration
 #define CST_DIGITS_UINT32		10					//Digits WITHOUT minus sign consideration
 #define CST_DIGITS_UINT64		19					//Digits WITHOUT minus sign consideration
+//Alphabet Letter Groups
+#define CST_ALPHABET_UPPER				'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
+#define CST_ALPHABET_LOWER				'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'
+#define CST_ALPHABET_LETTERS			CST_ALPHABET_UPPER, CST_ALPHABET_LOWER
+#define CST_ALPHABET_VOWELS_UPPER		'A', 'E', 'I', 'O', 'U'
+#define CST_ALPHABET_VOWELS_LOWER		'a', 'e', 'i', 'o', 'u'
+#define CST_ALPHABET_VOWELS				CST_ALPHABET_VOWELS_UPPER, CST_ALPHABET_VOWELS_LOWER
+#define CST_ALPHABET_CONSONANTS_UPPER	'B', 'C', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'X', 'Y', 'Z'
+#define CST_ALPHABET_CONSONANTS_LOWER	'b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'x', 'y', 'z'
+#define CST_ALPHABET_CONSONANTS			CST_ALPHABET_CONSONANTS_UPPER, CST_ALPHABET_CONSONANTS_LOWER
+#define CST_ALPHABET_NUMBERS			'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
+#define CST_ALPHABET_ALL				CST_ALPHABET_LETTERS, CST_ALPHABET_NUMBERS
+//Macro Utils	
+#define safeDelete(memory) if(memory) { delete memory; memory = nullptr; }
+#define safeDeleteArr(memory) if(memory) { delete[] memory; memory = nullptr; }
 
 //Unsigned Types --------------------------------------------------------------------------------------------------
 typedef unsigned char				uint8;		//Range > 0 to 255 (1 byte / BYTE)
@@ -88,7 +108,7 @@ typedef signed __int64				int64;		//Range > –9,223,372,036,854,775,808 to 9,223,
 
 //Namespaces and worker classes	//	------------------------------------------------------------------------------------------------------
 
-enum StateType
+enum class StateType
 {
 	EXCP = -3,	//Exception
 	ERR,		//Error
@@ -97,7 +117,7 @@ enum StateType
 	SUCCESS		//Success
 };
 
-enum ExtractByte
+enum class ExtractByte
 {
 	FIRST,
 	SECOND,
@@ -105,7 +125,7 @@ enum ExtractByte
 	FORTH
 };
 
-enum ArrayCompare
+enum class ArrayCompare
 {
 	LESS,			// <
 	LEQ,			// <=
@@ -115,7 +135,7 @@ enum ArrayCompare
 	DIFF			// !=
 };
 
-enum Endian
+enum class Endian
 {
 	BIG_ENDIAN,		//Most significant bit (generaly the 'sign' bit) stays at the front
 	LITTLE_ENDIAN	//Most significant bit (generaly the 'sign' bit) stays at the back
@@ -123,60 +143,61 @@ enum Endian
 
 namespace BitOperations
 {
+
 	inline int ExtractFromUInt32(uint32 src, ExtractByte Byte, Endian Endianess)
 	{
-		if (Endianess == LITTLE_ENDIAN)
+		if (Endianess == Endian::LITTLE_ENDIAN)
 		{
 			switch (Byte)
 			{
-			case FIRST:
+			case ExtractByte::FIRST:
 				return ((src & 0xFF000000) >> 24);
-			case SECOND:
+			case ExtractByte::SECOND:
 				return ((src & 0x00FF0000) >> 16);
-			case THIRD:
+			case ExtractByte::THIRD:
 				return ((src & 0x0000FF00) >> 8);
-			case FORTH:
+			case ExtractByte::FORTH:
 				return ((src & 0x000000FF) >> 0);
 			}
 		}
 		switch (Byte)
 		{
-		case FIRST:
+		case ExtractByte::FIRST:
 			return ((src & 0xFF000000) >> 0);
-		case SECOND:
+		case ExtractByte::SECOND:
 			return ((src & 0x00FF0000) >> 8);
-		case THIRD:
+		case ExtractByte::THIRD:
 			return ((src & 0x0000FF00) >> 16);
-		case FORTH:
+		case ExtractByte::FORTH:
 			return ((src & 0x000000FF) >> 24);
 		}
 		return 0;	//Invalid parameters
 	}
 	inline int ExtractFromInt32(int32 src, ExtractByte Byte, Endian Endianess)
 	{
-		if (Endianess == LITTLE_ENDIAN)
+		if (Endianess == Endian::LITTLE_ENDIAN)
 		{
 			switch (Byte)
 			{
-			case FIRST:
+			case ExtractByte::FIRST:
 				return ((src & 0xFF000000) >> 24);
-			case SECOND:
+			case ExtractByte::SECOND:
 				return ((src & 0x00FF0000) >> 16);
-			case THIRD:
+			case ExtractByte::THIRD:
 				return ((src & 0x0000FF00) >> 8);
-			case FORTH:
+			case ExtractByte::FORTH:
 				return ((src & 0x000000FF) >> 0);
 			}
 		}
 		switch (Byte)
 		{
-		case FIRST:
+		case ExtractByte::FIRST:
 			return ((src & 0xFF000000) >> 0);
-		case SECOND:
+		case ExtractByte::SECOND:
 			return ((src & 0x00FF0000) >> 8);
-		case THIRD:
+		case ExtractByte::THIRD:
 			return ((src & 0x0000FF00) >> 16);
-		case FORTH:
+		case ExtractByte::FORTH:
 			return ((src & 0x000000FF) >> 24);
 		}
 		return 0;
@@ -184,7 +205,7 @@ namespace BitOperations
 	inline uint8* ExtractFromUInt32(uint32 src, Endian Endianess)
 	{
 		uint8 *Out = new uint8[4];
-		if (Endianess == LITTLE_ENDIAN)
+		if (Endianess == Endian::LITTLE_ENDIAN)
 		{
 			Out[0] = (uint8)((src & 0xFF000000) >> 24);
 			Out[1] = (uint8)((src & 0x00FF0000) >> 16);
@@ -201,7 +222,7 @@ namespace BitOperations
 	inline 	int8* ExtractFromInt32(int32 src, Endian Endianess)
 	{
 		int8 *Out = new int8[4];
-		if (Endianess == LITTLE_ENDIAN)
+		if (Endianess == Endian::LITTLE_ENDIAN)
 		{
 			Out[0] = (int8)((src & 0xFF000000) >> 24);
 			Out[1] = (int8)((src & 0x00FF0000) >> 16);
@@ -218,7 +239,7 @@ namespace BitOperations
 	inline uint32 ComputeUInt32(uint8 *src, Endian Endianess)
 	{	// !! (WIP) !! Verify if this is the correct order for BIG ENDIAN
 		uint32 Out = 0;
-		if (Endianess == BIG_ENDIAN)
+		if (Endianess == Endian::BIG_ENDIAN)
 		{
 			Out = (src[0] << 0) | (src[1] << 8) | (src[2] << 16) | (src[3] << 24);
 			return Out;
@@ -229,7 +250,7 @@ namespace BitOperations
 	inline int32 ComputeInt32(int8 *src, Endian Endianess)
 	{
 		int32 Out = 0;
-		if (Endianess == BIG_ENDIAN)
+		if (Endianess == Endian::BIG_ENDIAN)
 		{
 			Out = (src[0] << 0) | (src[1] << 8) | (src[2] << 16) | (src[3] << 24);
 			return Out;
@@ -359,7 +380,7 @@ namespace BitOperations
 		uint16 Size = sizeof(T);
 		uint16 Bits = Size * 8;
 		uint16 Ops = (Size << 1) - 1;
-		if (Endianess == BIG_ENDIAN)
+		if (Endianess == Endian::BIG_ENDIAN)
 		{
 			printf("[BIG ENDIAN]Binary of 'src' = %d [%d] Bytes (%d bits):\n", src, Size, Bits);
 			printf("[");
@@ -558,10 +579,12 @@ namespace Utils
 		return 0;
 	}
 
+	//Return the index [row, column] but from an array based of the row size of 'rowSz'
 	inline int matArrayIndex(int row, int column, int rowSz)
 	{
 		return column + (rowSz * row);
 	}
+	//Return the value from an array at [row, column] based of the row size of 'rowSz'
 	template <class T>
 	inline T matArrayIndex(int row, int column, int rowSz, T *in)
 	{
@@ -786,7 +809,7 @@ namespace Utils
 		}
 	}
 
-	bool endOfFile(FILE *file)
+	/*bool isEndOfFile(FILE *file)
 	{
 		if (fgetc(file) != EOF)
 		{
@@ -794,7 +817,7 @@ namespace Utils
 			return false;
 		}
 		return true;
-	}
+	}*/
 #endif
 }
 
@@ -849,6 +872,8 @@ namespace CharOperations
 	{
 		switch (C)
 		{
+		case CST_KEY_SINGLE_QUOTE:
+		case CST_KEY_DOUBLE_QUOTE:
 		case ',':
 		case '.':
 		case ' ':
@@ -1020,6 +1045,27 @@ namespace CharOperations
 			}
 		}
 		return true;
+	}
+	//TODO: Test
+	inline bool Contains(const char *S1, const char *S2, int lenS1, int lenS2)
+	{
+		int matches = 0;
+		for (int i = 0; i < lenS1 && i < lenS2; i++)
+		{
+			if (isEqual(S1[i], S2[matches]))
+			{
+				matches++;
+				if (matches == lenS2)
+				{
+					return true;
+				}
+			}
+			else
+			{
+				matches = 0;
+			}
+		}
+		return false;
 	}
 
 	inline int getAlphabeticalIndex(char C)
@@ -1640,10 +1686,10 @@ public:
 	{
 		m_text = new char[m_size]();
 	}
-	BaseString(uint32 size, const char *str) : m_size(!size ? 1 : size), m_length(0)
+	BaseString(uint32 strLen, const char *str) : m_size(!strLen ? 1 : strLen + 1), m_length(0)
 	{
 		m_text = new char[m_size]();
-		setString(str);
+		setString(str, m_size - 1);
 	}
 	BaseString(const BaseString &str)
 	{
@@ -1707,6 +1753,10 @@ public:
 			}
 		}
 		return false;
+	}
+	bool Contains(const char *str, int len)
+	{
+		return CharOperations::Contains(m_text, str, m_size, len);
 	}
 	bool Equal(const char *str)
 	{
@@ -1812,6 +1862,23 @@ public:
 		{
 			m_length = 0;
 			while(m_length < m_size)
+			{
+				m_text[m_length] = str[m_length];
+				m_length++;
+				if(!str[m_length])	//str[i] != '\0'
+				{
+					break;
+				}
+			}
+			m_text[m_length] = '\0';
+		}
+	}
+	void setString(const char *str, int maxSize)
+	{
+		if(str && str[0])
+		{
+			m_length = 0;
+			while(m_length < m_size && m_length < maxSize)
 			{
 				m_text[m_length] = str[m_length];
 				m_length++;
@@ -1952,7 +2019,7 @@ public:
 	void Scan(const char *format)
 	{
 		setbuf(stdin, 0);
-		scanf(format, m_text);
+		(void)scanf(format, m_text);
 		m_length = 0;
 		while (m_text[++m_length]);
 		m_text[m_size - 1] = '\0';	//Failsafe
@@ -2196,11 +2263,240 @@ public:
 	}
 };
 
+class Flag16
+{
+private:
+	uint16 m_FlagHolder;
+
+public:
+	Flag16(uint16 Flags) : m_FlagHolder(Flags) { };
+
+	bool operator[](int Index) const
+	{
+		return BitOperations::IsBitSetSafe(m_FlagHolder, Index);
+	}
+	bool isFlagSet(uint16 Flag)
+	{
+		return BitOperations::IsBitSetSafe(m_FlagHolder, Flag);
+	}
+	uint16 getValue(void)
+	{
+		return m_FlagHolder;
+	}
+	void setValue(uint16 val)
+	{
+		m_FlagHolder = val;
+	}
+	void toggleFlag(uint8 Flag)
+	{
+		BitOperations::ToggleBitSafe(m_FlagHolder, Flag);
+	}
+	void setFlag(uint8 Flag)
+	{
+		BitOperations::SetBitSafe(m_FlagHolder, Flag);
+	}
+};
+
+class Flag32
+{
+private:
+	uint32 m_FlagHolder;
+
+public:
+	Flag32(uint32 Flags) : m_FlagHolder(Flags) { };
+
+	bool operator[](int Index) const
+	{
+		return BitOperations::IsBitSetSafe(m_FlagHolder, Index);
+	}
+	bool isFlagSet(uint32 Flag)
+	{
+		return BitOperations::IsBitSetSafe(m_FlagHolder, Flag);
+	}
+	uint32 getValue(void)
+	{
+		return m_FlagHolder;
+	}
+	void setValue(uint32 val)
+	{
+		m_FlagHolder = val;
+	}
+	void toggleFlag(uint32 Flag)
+	{
+		BitOperations::ToggleBitSafe(m_FlagHolder, Flag);
+	}
+	void setFlag(uint32 Flag)
+	{
+		BitOperations::SetBitSafe(m_FlagHolder, Flag);
+	}
+};
+
 //Specific classes             	//	------------------------------------------------------------------------------------------------------
 
+class Permutation
+{
+private:
+	int m_indexer;	//Global index for each permutation
+	int m_0stop;	//Actual amount of letters we will manipulate
+
+	void init(int len, int per)
+	{
+		m_wordLength = len;
+		m_permutations = per;
+		m_0stop = m_wordLength - 1;
+		m_permuBuffer = new char[m_wordLength]();
+		m_words = new char*[m_permutations]();
+		for(int i = 0; i < m_permutations; i++)
+		{
+			m_words[i] = new char[m_wordLength]();
+		}
+	}
+	void purge(void)
+	{
+		if(m_words)
+		{
+			for(int i = 0; i < m_permutations; i++)
+			{
+				delete[] m_words[i];
+			}
+			delete[] m_words;
+			m_words = nullptr;
+		}
+		if(m_permuBuffer)
+		{
+			delete[] m_permuBuffer;
+			m_permuBuffer = nullptr;
+		}
+	}
+
+protected:
+	char **m_words, *m_permuBuffer;
+	int m_permutations, m_wordLength;
+
+	void recuPermutate(int curLetter, int wordSize, const char *elements, int elementSize)
+	{
+		if(curLetter < wordSize)
+		{
+			for(int i = 0; i < elementSize; i++)
+			{
+				m_permuBuffer[curLetter] = elements[i];
+				recuPermutate(curLetter + 1, wordSize, elements, elementSize);
+			}
+		}
+		else
+		{
+			for(int i = 0; i < m_0stop; i++)
+			{
+				m_words[m_indexer][i] = m_permuBuffer[i];
+			}
+			m_indexer++;
+		}
+	}
+
+	static void recuPermuCallback(int curLetter, int wordSize, char *word, const char *elements, int elementSize, void(*callback)(char *permutation, void *auxiliary), void *aux)
+	{
+		if(curLetter < wordSize)
+		{
+			for(int i = 0; i < elementSize; i++)
+			{
+				word[curLetter] = elements[i];
+				recuPermuCallback(curLetter + 1, wordSize, word, elements, elementSize, callback, aux);
+			}
+		}
+		else
+		{
+			callback(word, aux);
+		}
+	}
+
+#ifdef _INC_STDIO
+	static void recuPermuPrint(int curLetter, int wordSize, char *word, const char *elements, int elementSize)
+	{
+		if(curLetter < wordSize)
+		{
+			for(int i = 0; i < elementSize; i++)
+			{
+				word[curLetter] = elements[i];
+				recuPermuPrint(curLetter + 1, wordSize, word, elements, elementSize);
+			}
+		}
+		else
+		{
+			printf("%s\n", word);
+		}
+	}
+
+#endif
+
+public:
+	Permutation(int uniqueElements, int length) : m_words(nullptr), m_permuBuffer(nullptr), m_indexer(0)
+	{
+		int permu = 1;
+		length += 1;
+		for(int i = 1; i < length; i++)
+		{
+			permu *= uniqueElements;
+		}
+		init(length, permu);
+	}
+	Permutation() : m_words(nullptr), m_permuBuffer(nullptr), m_permutations(0), m_wordLength(0), m_indexer(0), m_0stop(0) { }
+
+	~Permutation(void)
+	{
+		purge();
+	}
+
+	void reallocate(int uniqueElements, int length)
+	{
+		int permu = 1;
+		length += 1;
+		for(int i = 1; i < length; i++)
+		{
+			permu *= uniqueElements;
+		}
+		purge();
+		init(length, permu);
+	}
+
+	int getLength(void)
+	{
+		return m_wordLength;
+	}
+	int getPermutationCount(void)
+	{
+		return m_permutations;
+	}
+
+#ifdef _INC_STDIO
+	static void justPrint(const char *elements, int amountElements, int wordLength)
+	{
+		char *buf = new char[wordLength + 1]();
+		recuPermuPrint(0, wordLength, buf, elements, amountElements);
+		delete[] buf;
+	}
+
+	static void genCallback(const char *elements, int amountElements, int wordLength, void(*callback)(char *permutation, void *auxiliary), void *aux)
+	{
+		char *buf = new char[wordLength + 1]();
+		recuPermuCallback(0, wordLength, buf, elements, amountElements, callback, aux);
+		delete[] buf;
+	}
+#endif
+
+	char** genPermutation(char *elements, int amountElements)
+	{
+		if(m_permutations && m_words)
+		{
+			m_indexer = 0;
+			recuPermutate(0, m_0stop, elements, amountElements);
+			return m_words;
+		}
+		return nullptr;
+	}
+};
+
 //Color Palette for color data (either separated as 4 uint8 or a single uint32)
-//Holds all colors, but keeps Alpha to 255 (full opaque) and don't allow to change it. This class, is the base class for "RGBAColorPalette"
-class RGBColorPalette
+class Pixel
 {
 protected:
 	union ColorComp
@@ -2216,20 +2512,20 @@ protected:
 	}
 
 public:
-	RGBColorPalette() { resetPalette(); };
-	RGBColorPalette(const uint8 Red, const uint8 Green, const uint8 Blue)
+	Pixel() { resetPalette(); };
+	Pixel(const uint8 Red, const uint8 Green, const uint8 Blue)
 	{
 		Color.Comps[0] = Red;
 		Color.Comps[1] = Green;
 		Color.Comps[2] = Blue;
 	}
-	RGBColorPalette(const uint8* Colors)
+	Pixel(const uint8* Colors)
 	{
 		Color.Comps[0] = Colors[0];
 		Color.Comps[1] = Colors[1];
 		Color.Comps[2] = Colors[2];
 	}
-	RGBColorPalette(const uint32 Colors)
+	Pixel(const uint32 Colors)
 	{
 		setColorsFromUInt32(Colors);
 	}
@@ -2246,6 +2542,10 @@ public:
 	{
 		return Color.Comps[2];
 	}
+	uint8 getAlpha(void) const
+	{
+		return Color.Comps[3];
+	}
 	void setRed(const uint8 Red)
 	{
 		Color.Comps[0] = Red;
@@ -2258,45 +2558,48 @@ public:
 	{
 		Color.Comps[2] = Blue;
 	}
-	void setColorsFromPalette(RGBColorPalette &Palette)
+	void setColorsFromPalette(Pixel &Palette)
 	{
 		Color.Col = Palette.getColorsAsUInt32();
 	}
-	virtual bool compare(RGBColorPalette &Palette)
+	void setAlpha(const uint8 Alpha)
+	{
+		Color.Comps[3] = Alpha;
+	}
+	bool compare(Pixel &Palette)
 	{
 		return Color.Col == Palette.getColorsAsUInt32();
 	}
-	virtual bool compare(const uint32 Colors)
+	bool compare(const uint32 Colors)
 	{
-		RGBColorPalette Temp(Colors);
-		return Color.Col == Temp.getColorsAsUInt32();
+		return Color.Col == Colors;
 	}
-	float getBrightness()
+	float getBrightness(bool includeAlpha)
 	{
-		return brightness(*this);
+		return (float)(Color.Comps[0] + Color.Comps[1] + Color.Comps[2] + includeAlpha * Color.Comps[3]) / (765 + includeAlpha * 255);
 	}
-	virtual uint32 getColorsAsUInt32(void)
+	uint32 getColorsAsUInt32(void)
 	{
-		//uint32 Out = (getBlue() << 8) | (getGreen() << 16) | (getRed() << 24);
+		//uint32 Out = (getBlue() << 8) | (getGreen() << 16) | (getRed() << 24 | (getAlpha() << 32);	//TODO: Test for speed
 		return Color.Col;
 	}
-	virtual void setColorsFromUInt32(const uint32 Colors)
+	void setColorsFromUInt32(const uint32 Colors)
 	{
 		Color.Col = Colors;
-		Color.Comps[3] = 255;
 	}
-	virtual void setColorsFromUint8(const uint8* Colors)
+	void setColorsFromUint8(const uint8* Colors, bool includeAlpha)
 	{
 		Color.Comps[0] = Colors[0];
 		Color.Comps[1] = Colors[1];
 		Color.Comps[2] = Colors[2];
+		Color.Comps[3 * includeAlpha] = Colors[3 * includeAlpha];	//Will update [0] again if false, but will not require a branch
 	}
 
-	bool operator==(RGBColorPalette &Pal)
+	bool operator==(Pixel &Pal)
 	{
 		return compare(Pal);
 	}
-	bool operator!=(RGBColorPalette &Pal)
+	bool operator!=(Pixel &Pal)
 	{
 		return !compare(Pal);
 	}
@@ -2306,118 +2609,14 @@ public:
 	{
 		return (float)(Red + Green + Blue) / 765;
 	}
-	static float brightness(const RGBColorPalette &Palette)
-	{
-		return (float)(Palette.getRed() + Palette.getGreen() + Palette.getBlue()) / 765;
-	}
-};
-
-//Color Palette for color data (either separated as 4 uint8 or a single uint32)
-//Holds all colors, with Alpha controls
-class RGBAColorPalette : public RGBColorPalette
-{
-public:
-	RGBAColorPalette() { };	//Automatically builds with 'RGBColorPalette' constructor
-	RGBAColorPalette(uint8 Red, uint8 Green, uint8 Blue)
-	{
-		Color.Comps[0] = Red;
-		Color.Comps[1] = Green;
-		Color.Comps[2] = Blue;
-		Color.Comps[3] = 255;
-	}
-	RGBAColorPalette(uint8 Red, uint8 Green, uint8 Blue, uint8 Alpha)
-	{
-		Color.Comps[0] = Red;
-		Color.Comps[1] = Green;
-		Color.Comps[2] = Blue;
-		Color.Comps[3] = Alpha;
-	}
-	RGBAColorPalette(const uint8 *Colors)
-	{
-		Color.Comps[0] = Colors[0];
-		Color.Comps[1] = Colors[1];
-		Color.Comps[2] = Colors[2];
-		Color.Comps[3] = Colors[3];
-	}
-	RGBAColorPalette(const uint32 Colors)
-	{
-		setColorsFromUInt32(Colors);
-	}
-	RGBAColorPalette(RGBColorPalette &Clr)
-	{
-		setColorsFromPalette(Clr);
-	}
-
-	uint8 getAlpha(void) const
-	{
-		return Color.Comps[3];
-	}
-	void setAlpha(const uint8 Alpha)
-	{
-		Color.Comps[3] = Alpha;
-	}
-	void setColorsFromPalette(RGBAColorPalette &Palette)
-	{
-		Color.Col = Palette.getColorsAsUInt32();
-	}
-	void setColorsFromPalette(RGBColorPalette &Palette)
-	{
-		Color.Col = Palette.getColorsAsUInt32();
-	}
-	bool compare(RGBAColorPalette &Palette)
-	{
-		return Color.Col == Palette.getColorsAsUInt32();
-	}
-	bool compare(RGBColorPalette &Palette)
-	{
-		return (Color.Comps[0] == Palette.getRed() && Color.Comps[1] == Palette.getGreen() && Color.Comps[2] == Palette.getBlue());
-	}
-	bool compare(const uint32 Colors)
-	{
-		return Color.Col == Colors;
-	}
-
-	uint32 getColorsAsUInt32(void)
-	{
-		//uint32 Out = (getAlpha() << 0) | (getBlue() << 8) | (getGreen() << 16) | (getRed() << 24);
-		return Color.Col;
-	}
-	void setColorsFromUInt32(const uint32 Colors)
-	{
-		Color.Col = Colors;
-	}
-	void setColorsFromUint8(const uint8* Colors)
-	{
-		Color.Comps[0] = Colors[0];
-		Color.Comps[1] = Colors[1];
-		Color.Comps[2] = Colors[2];
-		Color.Comps[3] = Colors[3];
-	}
-
-	bool operator==(RGBAColorPalette &Pal)
-	{
-		return compare(Pal);
-	}
-	bool operator!=(RGBAColorPalette &Pal)
-	{
-		return !compare(Pal);
-	}
-	bool operator==(RGBColorPalette &Pal)
-	{
-		return compare(Pal);
-	}
-	bool operator!=(RGBColorPalette &Pal)
-	{
-		return !compare(Pal);
-	}
-
-	static float weight(const uint8 Red, const uint8 Green, const uint8 Blue, const uint8 Alpha)
+	static float brightness(const uint8 Red, const uint8 Green, const uint8 Blue, const uint8 Alpha)
 	{
 		return (float)(Red + Green + Blue + Alpha) / 1020;
 	}
-	static float weight(const RGBAColorPalette &Palette)
+	static float brightness(const Pixel &Palette, bool includeAlpha)
 	{
-		return (float)(Palette.getRed() + Palette.getGreen() + Palette.getBlue() + Palette.getAlpha()) / 1020;
+		//Branchless method to compute alpha
+		return (float)(Palette.getRed() + Palette.getGreen() + Palette.getBlue() + includeAlpha * Palette.getAlpha()) / (765 + includeAlpha * 255);
 	}
 };
 

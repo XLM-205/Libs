@@ -297,7 +297,7 @@ namespace Sorting
 		}
 	}
 
-	void Counting(int *v, uint32 size, uint32 highest)
+	/*void Counting(int *v, uint32 size, uint32 highest)
 	{
 		int *count;
 		int stop = highest;
@@ -320,6 +320,27 @@ namespace Sorting
 			{
 				v[j++] = i;
 				--count[i];
+			}
+		}
+		delete[] count;
+	}*/
+
+	//Optimized 'CountingSort'
+	void CountingSort(int *v, uint32 size, uint32 highest)
+	{
+		int stop = highest + 1;
+		int *count = new int[stop]();			//Allocates one slot for each integer that can appear (+1 because arrays start at 0)
+
+		for (int i = 0; i < size; ++i)			//Count how many times v[i] number appears
+		{
+			count[v[i]]++;
+		}
+		for (int i = 0, j = 0; i < stop; ++i)
+		{
+			while (count[i])					//While we still have numbers to subtract from the count...
+			{
+				v[j++] = i;						//...add it to the output and move the index 'j' up...
+				--count[i];						//...and subtract one from the total of that number
 			}
 		}
 		delete[] count;

@@ -48,8 +48,8 @@ namespace MWInputHandler
 	uint16 getMouseXPos(void);
 	uint16 getMouseYPos(void);
 	Vec2<int16> getMousePos(void);
-	mwVec2d getMouseCentralized(uint16 WindowWidth, uint16 WindowHeigth, double FullOrtho);
-	mwVec2d getMouseCentralizedRatio(uint16 WindowWidth, uint16 WindowHeigth, double FullOrtho, double FullOrthoXRatio);
+	mwVec2d getMouseCentralized(const uint16 WindowWidth, const uint16 WindowHeigth, double FullOrtho);
+	mwVec2d getMouseCentralizedRatio(const uint16 WindowWidth, const uint16 WindowHeigth, double FullOrtho, double FullOrthoXRatio);
 	uint32 getSpecialMessage(void);
 	int64 getSpecialParameter(void);
 	uint32 getPurgeSpecialMessage(void);

@@ -119,6 +119,22 @@ public:
 	{
 		return !(*this == v);
 	}
+	bool operator<(const Vec3 &v) const
+	{
+		return (_X < v._X && _Y < v._Y && _Z < v._Z);
+	}
+	bool operator<=(const Vec3 &v) const
+	{
+		return (_X <= v._X && _Y <= v._Y && _Z <= v._Z);
+	}
+	bool operator>(const Vec3 &v) const
+	{
+		return (_X > v._X && _Y > v._Y && _Z > v._Z);
+	}
+	bool operator>=(const Vec3 &v) const
+	{
+		return (_X >= v._X && _Y >= v._Y && _Z >= v._Z);
+	}
 	Vec3 operator+(const Vec3 &v) const
 	{
 		return Vec3(_X + v._X, _Y + v._Y, _Z + v._Z);
@@ -238,6 +254,22 @@ public:
 		_X = X;
 		_Y = Y;
 		_Z = Z;
+	}
+
+	double distanceFrom(double X, double Y, double Z)
+	{
+		double x = _X - X;
+		double y = _Y - Y;
+		double z = _Z - Z;
+		return sqrt((x * x) + (y * y) + (z * z));
+	}
+	template <typename type2>
+	double distanceFrom(const Vec3<type2> &v)
+	{
+		double x = _X - v._X;
+		double y = _Y - v._Y;
+		double z = _Z - v._Z;
+		return sqrt((x * x) + (y * y) + (z * z));
 	}
 
 	//Multi input type conversion

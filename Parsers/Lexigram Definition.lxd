@@ -8,10 +8,11 @@
 @	 <keyID>	 is a integer defining the lexicon unique ID
 @	 <'Comment'> is a 256 characters string, counting with the single brackets
 @	The first character of the file defines a comment line. Those should be ignored by the parser
-main 0 'Must check for () to verify as function'
+main 0 'Entry point'
 @ - Conditional Operators [1..9] ------------------------------
 if 1 'Conditional'
 else 2 'Default conditional'
+? 3 'Ternary Operator'
 @ - Logic & Arithmetic Operators [10..99] ---------------------
 = 10 'Atribution'
 + 11 'Sum'
@@ -29,6 +30,11 @@ else 2 'Default conditional'
 & 23 'Logic AND'
 ++ 24 'Increment Operator'
 -- 25 'Decrement Operator'
++= 26 'Implicit Sum'
+-= 27 'Implicit Subtraction'
+*= 28 'Implicit Multiplication'
+/= 29 'Implicit Division'
+^= 30 'Implicit Power'
 @ - Special Operators [100..199] ------------------------------
 { 100 'Open Scope'
 } 101 'Close Scope'
@@ -37,6 +43,8 @@ else 2 'Default conditional'
 ( 104 'Priority Open'
 ) 105 'Priority Close'
 ; 106 'Line End'
+/* 196 'Comment Start'
+*/ 197 'Comment End'
 // 198 'Comment Line'
 # 199 'Include Call'
 @ - Branch & Loop operators [200..299] ------------------------
@@ -46,13 +54,24 @@ do 202 'Do-While Loop starter'
 switch 203 'Switch Labels Branch'
 continue 204 'Skip-Continue Loop'
 break 205 'Skip-Exit Loop'
-@ - Reserved Words [400..999] ---------------------------------
+@ - Reserved Words [400..899] ---------------------------------
 char 400 'Atomic character'
 string 401 'String class'
 int 402 'Atomic integer'
 double 403 'Atomic float'	
 const 404 'Constant'
 return 500 'Return operator'
-@ - System Reserved [1000..9999] ------------------------------
-__RES_VAR_SLOT__ 1000 'Start of the available variable slots'
-__RES_CONS_NUM__ 9999 'Plain Number'
+@ - Pre Processor Directives [900..999] -----------------------
+#include 900 'Include'
+#define 901 'Define'
+#ifdef 902 'Pre-Proc. If'
+#elif 903 'Pre-Proc. Else-If'
+@ - User Defined [1000..4999] ---------------------------------
+__USR_TYPE_SLOT__ 1000 'User types slots'
+@ - System Reserved [5000..999999] ----------------------------
+__RES_VAR_SLOT__ 5000 'Variable slots'
+__RES_CONS_CHAR__ 999995 'Constant Char'
+__RES_CONS_STRING__ 999996 'Constant String'
+__RES_COMMENT__ 999997 'Comment'
+__RES_PRE_PROC_COM__ 999998 'Pre Proc. Arg.'
+__RES_CONS_NUM__ 999999 'Constant Number'

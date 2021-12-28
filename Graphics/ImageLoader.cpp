@@ -34,13 +34,13 @@
 ImgLoader::ImgLoader(char *Filename)
 {
 	openFile(Filename, "rb");
-	if (flstState == MWFS_SUCCESS)
+	if (m_stateCode == FileStatus::FS_SUCCESS)
 	{
 		sprintf(FlPath, "%s", Filename);
 		setImageFormat();
 		is_imageSucess = true;
 	}
-	else if (flstState == MWFS_ERROR_NO_FILE)
+	else if (m_stateCode == FileStatus::FS_ERROR_NO_FILE)
 	{
 		sprintf((char*)ImgType, MWIL_IS_NOT_FOUND);
 		is_imageSucess = false;
@@ -49,10 +49,10 @@ ImgLoader::ImgLoader(char *Filename)
 	{
 		is_imageSucess = false;
 	}
-	if (flstState != MWFS_ERROR_NO_PATH)
+	/*if (m_stateCode != FileStatus::FS_ERROR_NO_PATH)
 	{
 		setImageName(FlPath);
-	}
+	}*/
 }
 
 ImgLoader::ImgLoader(char *Filename, uint8 LoadingMode)
@@ -74,7 +74,7 @@ ImgLoader::~ImgLoader(void)
 
 void ImgLoader::swapRedBlue(void)
 {
-	if (flstState == MWIL_FILE_SUCESS)		//ONLY try to filter, IF an image has been loaded
+	if (m_stateCode == FileStatus::FS_SUCCESS)		//ONLY try to filter, IF an image has been loaded
 	{
 		unsigned char Red, Blue;			//To convert BGR to RGB
 		uint8 DensityMultiplier = 3;
@@ -140,14 +140,14 @@ void ImgLoader::fixBMPAlpha(void)
 void ImgLoader::Load(char *Filename)
 {
 	openFile(Filename, "rb");
-	if (flstState == MWFS_SUCCESS)
+	if (m_stateCode == FileStatus::FS_SUCCESS)
 	{
 		sprintf(FlPath, "%s", Filename);
 		setImageFormat();
 		setImageName(FlPath);
 		is_imageSucess = true;
 	}
-	else if (flstState == MWFS_ERROR_NO_FILE)
+	else if (m_stateCode == FileStatus::FS_ERROR_NO_FILE)
 	{
 		sprintf((char*)ImgType, MWIL_IS_NOT_FOUND);
 		is_imageSucess = false;
@@ -219,11 +219,11 @@ void ImgLoader::setImageFormat(void)
 	processFreeImage(FreeImage_GetFileType(FlPath, 0), 0);
 }
 
-void ImgLoader::setThreadControllerPointer(ThreadController* TGT)
-{
-	//Doesn't check against errors, because the main caller SHOULD do that instead of this
-	ExternalThrdCtrl = TGT;
-}
+//void ImgLoader::setThreadControllerPointer(ThreadController* TGT)
+//{
+//	//Doesn't check against errors, because the main caller SHOULD do that instead of this
+//	ExternalThrdCtrl = TGT;
+//}
 
 void ImgLoader::processFreeImage(FREE_IMAGE_FORMAT Format, uint8 Flag)
 {
@@ -234,7 +234,7 @@ void ImgLoader::processFreeImage(FREE_IMAGE_FORMAT Format, uint8 Flag)
 	int d_TimeWasted = clock();
 	int d_TotalWasted = 0;
 #endif
-	FIImage = FreeImage_Load(Format, FlPath, Flag);
+	FIImage = FreeImage_Load(FreeImage_GetFileType(FlPath), FlPath, Flag);
 #ifdef MWIL_DEBUG_TIMES
 	std::cout << "[IMGLOADER] Time spent in first load [PNG]: " << clock() - d_TimeWasted << "ms\n";
 	d_TotalWasted += clock() - d_TimeWasted;
@@ -259,7 +259,7 @@ void ImgLoader::processFreeImage(FREE_IMAGE_FORMAT Format, uint8 Flag)
 		FreeImage_Unload(TempPointer);
 	}
 	PixelTempBuffer = FreeImage_GetBits(FIImage);
-	if (Format == FIF_PNG)
+	//if (Format == FIF_PNG)
 	{	
 		//Saving by "Color Chunk mode" (saving entire color set, not width * heigth * colors)
 		ImageSize = FreeImage_GetWidth(FIImage) * FreeImage_GetHeight(FIImage);
@@ -278,11 +278,11 @@ void ImgLoader::processFreeImage(FREE_IMAGE_FORMAT Format, uint8 Flag)
 	std::cout << "[IMGLOADER] Time spent allocating [PNG]: " << clock() - d_TimeWasted << "ms\n";
 	d_TotalWasted += clock() - d_TimeWasted;
 #endif
-	if (ExternalThrdCtrl != NULL && false)	//"false" temporary so we can safely use the application while in the MTH tests
-	{
-		//TODO: Multi-threading support
-	}
-	else
+	//if (ExternalThrdCtrl != NULL && false)	//"false" temporary so we can safely use the application while in the MTH tests
+	//{
+	//	//TODO: Multi-threading support
+	//}
+	//else
 	{
 	#ifdef MWIL_DEBUG_TIMES
 		d_TimeWasted = clock();
@@ -316,12 +316,13 @@ void ImgLoader::setImageName(char *Filename)
 			Index = i;
 		}
 	}
-	flstName = (char*)malloc(sizeof(char)*(i - Index));
-	for (i = Index + 1, j = 0; Filename[i] != '\0'; i++, j++)
+	//flstName = (char*)malloc(sizeof(char)*(i - Index));
+	m_name->setString(&Filename[Index]);
+	/*for (i = Index + 1, j = 0; Filename[i] != '\0'; i++, j++)
 	{
 		flstName[j] = Filename[i];
 	}
-	flstName[j] = '\0';
+	flstName[j] = '\0';*/
 }
 
 int ImgLoader::getImageHeigth(void)

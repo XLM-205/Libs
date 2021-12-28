@@ -126,6 +126,22 @@ public:
 	{
 		return !(*this == v);
 	}
+	bool operator<(const Vec4 &v) const
+	{
+		return (_X < v._X && _Y < v._Y && _Z < v._Z && _W < v._W);
+	}
+	bool operator<=(const Vec4 &v) const
+	{
+		return (_X <= v._X && _Y <= v._Y && _Z <= v._Z && _W <= v._W);
+	}
+	bool operator>(const Vec4 &v) const
+	{
+		return (_X > v._X && _Y > v._Y && _Z > v._Z && _W > v._W);
+	}
+	bool operator>=(const Vec4 &v) const
+	{
+		return (_X >= v._X && _Y >= v._Y && _Z >= v._Z && _W >= v._W);
+	}
 	Vec4 operator+(const Vec4 &v) const
 	{
 		return Vec4(_X + v._X, _Y + v._Y, _Z + v._Z, _W + v._W);

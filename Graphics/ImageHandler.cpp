@@ -120,11 +120,11 @@ void PNG::setPNG(char *hedr)
 	InterlaceMethod = Header[12];
 }
 
-void PNG::convertPNGWH(void)
-{
-	ImgWidth = ntohl(ImgWidth);
-	ImgHeigth = ntohl(ImgHeigth);
-}
+//void PNG::convertPNGWH(void)
+//{
+//	ImgWidth = ntohl(ImgWidth);
+//	ImgHeigth = ntohl(ImgHeigth);
+//}
 
 void PNG::setPNGBuffer(FILE *file)
 {

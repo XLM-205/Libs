@@ -32,10 +32,10 @@
 #endif
 
 //Index Reference
-// 0 > m11	| 4 > m21	| 8 > m31	| 12> m41
-// 1 > m12	| 5 > m22	| 9 > m32	| 13> m42
-// 2 > m13	| 6 > m23	| 10> m33	| 14> m43
-// 3 > m14	| 7 > m24	| 11> m34	| 15> m44
+// 0 > m11	| 1 > m12	| 2 > m13	| 3 > m14
+// 4 > m21	| 5 > m22	| 6 > m23	| 7 > m24
+// 8 > m31	| 9 > m32	| 10> m33	| 11> m34
+// 12> m41	| 13> m42	| 14> m43	| 15> m44
 
 //Pattern: column-major (Values filled from the first column to the others)
 template <class type>

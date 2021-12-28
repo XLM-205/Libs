@@ -22,7 +22,7 @@
 #include "CustomTypes-SA.h"
 #include "DataTypes.h"
 
-enum FileStatus
+enum class FileStatus
 {
 	FS_ERROR_NO_PATH = -2,	//No or blank path given
 	FS_ERROR_NO_FILE,		//No file found with given
@@ -39,6 +39,7 @@ protected:
 	BaseString *m_nameFull = new BaseString(256);	//Full file path
 	FileStatus m_stateCode = FileStatus::FS_NONE;		//[-2] - No Path, [-1] - No File, [0] - No State Set (Default), [1] - Sucess
 	uint32 m_Lines = 0;			//The total number of lines
+	uint32 m_curLine = 0;		//Current line
 	FILE *m_fileP = nullptr;	//The file pointer								
 	//bool m_eof = false;			//Becomes true if the last read reached the end of file
 
@@ -106,7 +107,7 @@ public:
 		}
 	}
 
-	inline int getFileState(void){ return m_stateCode; };			//Return the m_fileP state code
+	inline FileStatus getFileState(void){ return m_stateCode; };	//Return the m_fileP state code
 	inline BaseString* getFileStateWr(void){ return m_state; };		//Return the m_fileP state, written
 	inline BaseString* getFileStateName(void) { return m_name; };	//Return the m_fileP name
 	inline FileStates& getFileStateDataPointer(void) { return *this; };
@@ -164,6 +165,7 @@ public:
 		if (m_fileP)
 		{
 			rewind(m_fileP);
+			m_curLine = 0;
 			//m_eof = false;
 		}
 	}
@@ -176,7 +178,7 @@ public:
 			while (!endOfFile())
 			{
 				char buf[512], c;
-				fscanf(m_fileP, "%511[^\n]%c", buf, &c);
+				(void)fscanf(m_fileP, "%511[^\n]%c", buf, &c);
 				if (c == '\n')
 				{
 					m_Lines++;
@@ -192,13 +194,10 @@ public:
 	}
 	bool endOfFile(void)
 	{
-		if (m_fileP)
+		if (m_fileP && (fgetc(m_fileP) != EOF))
 		{
-			if (fgetc(m_fileP) != EOF)
-			{
-				fseek(m_fileP, -1L, SEEK_CUR);
-				return false;
-			}
+			fseek(m_fileP, -1L, SEEK_CUR);
+			return false;
 		}
 		return true;
 	}
@@ -207,10 +206,27 @@ public:
 		return m_stateCode == FileStatus::FS_SUCCESS;
 	}
 
-	//Read a Line assuming a base buffer of 256 bytes and ignoring LineFeed ('\n')
+	//Resets the pointer and then skips 'line' lines
+	void skipTo(int line)
+	{
+		if (line < m_curLine)					//If the target is ahead of the pointer, reset the pointer..
+		{
+			resetFile();
+		}
+		for (int i = m_curLine; i < line; i++)	//...but if not, skip the diference of them
+		{
+			char *del = readLine();
+			if (del)
+			{
+				delete[] del;
+			}
+		}
+	}
+
+	//Read a Line assuming a base buffer of 2048 bytes and ignoring LineFeed ('\n')
 	char* readLine(void)
 	{
-		return readLine(256, false);
+		return readLine(2048, false);
 	}
 	char* readLine(int bufSize, bool includeLineFeed)
 	{
@@ -242,6 +258,7 @@ public:
 						return nullptr;
 					}
 					buf[j] = '\0';
+					m_curLine++;
 					return buf;
 				}
 				buf[j++] = c;
@@ -261,7 +278,7 @@ public:
 		if (m_fileP)
 		{
 			char *buf = new char[bufSize]();
-			fscanf(m_fileP, "%s", buf);
+			(void)fscanf(m_fileP, "%s", buf);
 			return buf;
 		}
 		return nullptr;
@@ -272,10 +289,21 @@ public:
 		if (m_fileP)
 		{
 			int temp = 0;
-			fscanf(m_fileP, "%d", &temp);
+			(void)fscanf(m_fileP, "%d", &temp);
 			return temp;
 		}
 		return CST_INT32_MIN;
+	}
+	//Reads a double, returning -0.0 on failure
+	double readDouble(void)
+	{
+		if(m_fileP)
+		{
+			double temp = 0;
+			(void)fscanf(m_fileP, "%lf", &temp);
+			return temp;
+		}
+		return -0.0;
 	}
 
 	char* read(int cAmount)
